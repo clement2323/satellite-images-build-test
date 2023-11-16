@@ -40,4 +40,7 @@ json_string="${json_string%,*} }"
 # Write the JSON string to a file
 echo "$json_string" > GCP_credentials.json
 
-chown -R onyxia:users $PROJECT_DIR/
+sudo apt-get update
+sudo apt-get install python3-gdal -y
+sudo apt-get install libgdal-dev -y
+pip install -r requirements.txt
