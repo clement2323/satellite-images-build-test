@@ -1,11 +1,8 @@
 import geopandas as gpd
 import numpy as np
-from astrovision import SatelliteImage
+from astrovision.data import SatelliteImage
 from rasterio.features import rasterize, shapes
 from shapely.geometry import Polygon
-from skimage.measure import label
-
-# from skimage.draw import polygon
 
 
 class Filter:
@@ -13,10 +10,12 @@ class Filter:
     Filter class.
     """
 
-    def __init__(self, image: SatelliteImage):
-        self.image = image
+    def __init__(self):
+        return
 
-    def is_too_black(self, black_value_threshold=100, black_area_threshold=0.5) -> bool:
+    def is_too_black(
+        self, image: SatelliteImage, black_value_threshold=100, black_area_threshold=0.5
+    ) -> bool:
         """
         Determine if a satellite image is too black
         based on pixel values and black area proportion.
@@ -25,7 +24,7 @@ class Filter:
         filters it based on the number of black pixels and their proportion.
         A pixel is considered black if its value is less than the specified
         threshold (black_value_threshold).
-
+        formula used : 0.2989red + 0.587green + 0.114blue
         The image is considered too black if the proportion of black pixels
         is greater than or equal to the specified threshold (black_area_threshold).
 
@@ -40,7 +39,7 @@ class Filter:
             bool: True if the proportion of black pixels is greater than or equal
                 to the threshold, False otherwise.
         """
-        gray_image = 0.2989 * self.array[0] + 0.5870 * self.array[1] + 0.1140 * self.array[2]
+        gray_image = 0.2989 * image.array[0] + 0.5870 * image.array[1] + 0.1140 * image.array[2]
         nb_black_pixels = np.sum(gray_image < black_value_threshold)
 
         if (nb_black_pixels / (gray_image.shape[0] ** 2)) >= black_area_threshold:
@@ -48,7 +47,9 @@ class Filter:
         else:
             return False
 
-    def mask_cloud(self, threshold: float = 0.98, min_size: int = 50000) -> np.ndarray:
+    def mask_cloud(
+        self, image: SatelliteImage, threshold: float = 0.98, min_size: int = 50000
+    ) -> np.ndarray:
         """
         Detects clouds in a SatelliteImage using a threshold-based approach
         (grayscale threshold and pixel cluster size threshold) and
@@ -88,10 +89,10 @@ class Filter:
             >>> ax.imshow(np.transpose(image_1.array, (1, 2, 0))[:,:,:3])
             >>> ax.imshow(mask, alpha=0.3)
         """
-        copy_image = self.copy()
+        copy_image = image.copy()
 
-        if not copy_image.normalized:
-            copy_image.normalize()
+        # if not copy_image.normalized:
+        #     copy_image.normalize()
 
         image = copy_image.array
         image = image[[0, 1, 2], :, :]
@@ -101,6 +102,8 @@ class Filter:
         # Convert the RGB image to grayscale
         grayscale = np.mean(image, axis=2)
 
+        # temp
+        label = 2
         # Find clusters of white pixels that correspond to 5% or more of the image
         labeled, num_features = label(grayscale > threshold)
 
@@ -126,6 +129,7 @@ class Filter:
 
     def mask_full_cloud(
         self,
+        image: SatelliteImage,
         threshold_center: float = 0.98,
         threshold_full: float = 0.7,
         min_size: int = 50000,
@@ -178,10 +182,10 @@ class Filter:
             >>> ax.imshow(mask_full, alpha=0.3)
         """
         # Mask out clouds from the image using different thresholds
-        cloud_center = self.mask_cloud(threshold_center, min_size)
-        cloud_full = self.mask_cloud(threshold_full, min_size)
+        cloud_center = self.mask_cloud(image, threshold_center, min_size)
+        cloud_full = self.mask_cloud(image, threshold_full, min_size)
 
-        nchannel, height, width = self.array.shape
+        nchannel, height, width = image.array.shape
 
         # Create a list of polygons from the masked center clouds in order
         # to obtain a GeoDataFrame from it
@@ -211,17 +215,13 @@ class Filter:
         # Remove any duplicate geometries
         result = result.drop_duplicates(subset="geometry")
 
-        # fig, ax = plt.subplots(figsize=(10, 10))
-        # ax.imshow(np.transpose(image.array, (1, 2, 0))[:,:,:3])
-        # result.plot(color = "orange", ax=ax)
-
         # Rasterize the geometries into a numpy array
         if result.empty:
-            rasterized = np.zeros(self.array.shape[1:])
+            rasterized = np.zeros(image.array.shape[1:])
         else:
             rasterized = rasterize(
                 result.geometry,
-                out_shape=self.array.shape[1:],
+                out_shape=image.array.shape[1:],
                 fill=0,
                 out=None,
                 all_touched=True,
