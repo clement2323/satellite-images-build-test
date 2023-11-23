@@ -1,6 +1,18 @@
 import os
 
-import s3fs
+import geopandas as gpd
+from s3fs import S3FileSystem
+
+
+def get_file_system() -> S3FileSystem:
+    """
+    Return the s3 file system.
+    """
+    return S3FileSystem(
+        client_kwargs={"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"},
+        key=os.environ["AWS_ACCESS_KEY_ID"],
+        secret=os.environ["AWS_SECRET_ACCESS_KEY"],
+    )
 
 
 def download_data(source: str, dep: str, year: str):
@@ -16,15 +28,11 @@ def download_data(source: str, dep: str, year: str):
 
     print("\n*** 1- Téléchargement des données...\n")
     s3_path = f"projet-slums-detection/data-raw/{source}/{dep}/{year}/"
-    local_path = f"../data-raw/{source}/{dep}/{year}/"
+    local_path = f"data/data-raw/{source}/{dep}/{year}/"
 
     try:
         # Initialize S3 file system
-        fs = s3fs.S3FileSystem(
-            client_kwargs={"endpoint_url": "https://" + "minio.lab.sspcloud.fr"},
-            key=os.getenv("AWS_ACCESS_KEY_ID"),
-            secret=os.getenv("AWS_SECRET_ACCESS_KEY"),
-        )
+        fs = get_file_system()
 
         # Download data from S3 to local path
         fs.download(rpath=s3_path, lpath=local_path, recursive=True)
@@ -38,3 +46,44 @@ def download_data(source: str, dep: str, year: str):
     except Exception as e:
         print(f"Error: An unexpected error occurred during the download process. {e}")
         raise
+
+
+def load_bdtopo(
+    year: str,
+    dep: str,
+) -> gpd.GeoDataFrame:
+    """
+    Load BDTOPO for a given datetime.
+
+    Args:
+        year (Literal): Year.
+        dep (Literal): Departement.
+
+    Returns:
+        gpd.GeoDataFrame: BDTOPO GeoDataFrame.
+    """
+
+    print("coucou")
+    if int(year) >= 2019:
+        couche = "BATIMENT"
+    elif int(year) < 2019:
+        couche = "BATI_INDIFFERENCIE"
+
+    fs = get_file_system()
+    print("coucou")
+
+    s3_path = f"projet-slums-detection/data-label/BDTOPO/{dep}/{year}/BATIMENT.*"
+    local_path = f"data/data-label/BDTOPO/{dep}/{year}/"
+    print(s3_path)
+    print(local_path)
+
+    fs.download(
+        rpath=s3_path,
+        lpath=local_path,
+        recursive=True,
+    )
+    print("coucou")
+
+    df = gpd.read_file(f"{local_path}{couche}.shp")
+
+    return df
