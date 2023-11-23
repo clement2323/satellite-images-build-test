@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 
 GCP_credentials.json
+data-raw/
