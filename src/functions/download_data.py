@@ -63,26 +63,21 @@ def load_bdtopo(
         gpd.GeoDataFrame: BDTOPO GeoDataFrame.
     """
 
-    print("coucou")
     if int(year) >= 2019:
         couche = "BATIMENT"
     elif int(year) < 2019:
         couche = "BATI_INDIFFERENCIE"
 
     fs = get_file_system()
-    print("coucou")
 
     s3_path = f"projet-slums-detection/data-label/BDTOPO/{dep}/{year}/BATIMENT.*"
     local_path = f"data/data-label/BDTOPO/{dep}/{year}/"
-    print(s3_path)
-    print(local_path)
 
     fs.download(
         rpath=s3_path,
         lpath=local_path,
         recursive=True,
     )
-    print("coucou")
 
     df = gpd.read_file(f"{local_path}{couche}.shp")
 
