@@ -1,2 +1,4 @@
 gdal==3.4.1
+pre-commit==3.5.0
+geopandas==0.14.1
 git+https://github.com/InseeFrLab/astrovision@main
