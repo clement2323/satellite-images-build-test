@@ -93,20 +93,29 @@ class Filter:
         # Convert the RGB image to grayscale
         weights = np.array([0.2989, 0.5870, 0.1140])[:, np.newaxis, np.newaxis]
         grayscale = np.sum(weights * image.array, axis=0)
+        grayscale = grayscale.astype(image.array.dtype)
 
-        # Find clusters of white pixels that correspond to 5% or more of the image
-        labeled, num_features = label(grayscale > threshold)
+        # Compute absolute threshold
+        if grayscale.dtype == np.uint8:
+            absolute_threshold = threshold * (2**8 - 1)
+        elif grayscale.dtype == np.uint16:
+            absolute_threshold = threshold * (2**16 - 1)
+        else:
+            raise ValueError(
+                f"Unsupported dtype: {grayscale.dtype}. Expected np.uint8 or np.uint16."
+            )
 
+        # Find clusters of white pixels
+        labeled, num_features = label(grayscale > absolute_threshold)
         region_sizes = np.bincount(labeled.flat)
 
         # Sort region labels by decreasing size
         sorted_labels = np.argsort(-region_sizes)
 
-        # Minimum size of the cluster
         mask = np.zeros_like(labeled)
-
         if num_features >= 1:
             for i in range(1, num_features + 1):
+                # Minimum size of the cluster
                 if region_sizes[sorted_labels[i]] >= min_relative_size * np.prod(grayscale.shape):
                     mask[labeled == sorted_labels[i]] = 1
                 else:
