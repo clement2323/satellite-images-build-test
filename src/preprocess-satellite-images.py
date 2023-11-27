@@ -7,7 +7,7 @@ from src.functions import download_data, labelling
 
 source = "PLEIADES"
 dep = "MAYOTTE"
-year = "2022"
+year = "2020"
 n_bands = 3
 type_labeler = "BDTOPO"
 task = "segmentation"

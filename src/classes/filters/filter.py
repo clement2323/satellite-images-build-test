@@ -2,6 +2,7 @@ import geopandas as gpd
 import numpy as np
 from astrovision.data import SatelliteImage
 from rasterio.features import rasterize, shapes
+from scipy.ndimage import label
 from shapely.geometry import Polygon
 
 
@@ -42,13 +43,13 @@ class Filter:
         gray_image = 0.2989 * image.array[0] + 0.5870 * image.array[1] + 0.1140 * image.array[2]
         nb_black_pixels = np.sum(gray_image < black_value_threshold)
 
-        if (nb_black_pixels / (gray_image.shape[0] ** 2)) >= black_area_threshold:
+        if (nb_black_pixels / np.prod(gray_image.shape)) >= black_area_threshold:
             return True
         else:
             return False
 
     def mask_cloud(
-        self, image: SatelliteImage, threshold: float = 0.98, min_size: int = 50000
+        self, image: SatelliteImage, threshold: float = 0.98, min_relative_size: float = 0.0125
     ) -> np.ndarray:
         """
         Detects clouds in a SatelliteImage using a threshold-based approach
@@ -60,15 +61,15 @@ class Filter:
         Args:
             image (SatelliteImage):
                 The input satellite image to process.
-            threshold (int):
+            threshold (float):
                 The threshold value to use for detecting clouds on the image
                 transformed into grayscale. A pixel is considered part of a
                 cloud if its value is greater than this threshold.
                 Default to 0.98.
-            min_size (int):
-                The minimum size (in pixels) of a cloud region to be
+            min_relative_size (float):
+                The minimum relative size (in pixels) of a cloud region to be
                 considered valid.
-                Default to 50000.
+                Default to 1.25%.
 
         Returns:
             mask (np.ndarray):
@@ -89,21 +90,10 @@ class Filter:
             >>> ax.imshow(np.transpose(image_1.array, (1, 2, 0))[:,:,:3])
             >>> ax.imshow(mask, alpha=0.3)
         """
-        copy_image = image.copy()
-
-        # if not copy_image.normalized:
-        #     copy_image.normalize()
-
-        image = copy_image.array
-        image = image[[0, 1, 2], :, :]
-        image = (image * np.max(image)).astype(np.float64)
-        image = image.transpose(1, 2, 0)
-
         # Convert the RGB image to grayscale
-        grayscale = np.mean(image, axis=2)
+        weights = np.array([0.2989, 0.5870, 0.1140])[:, np.newaxis, np.newaxis]
+        grayscale = np.sum(weights * image.array, axis=0)
 
-        # temp
-        label = 2
         # Find clusters of white pixels that correspond to 5% or more of the image
         labeled, num_features = label(grayscale > threshold)
 
@@ -116,10 +106,8 @@ class Filter:
         mask = np.zeros_like(labeled)
 
         if num_features >= 1:
-            # Display the progress bar
-            # for i in tqdm(range(1, num_features + 1)):
             for i in range(1, num_features + 1):
-                if region_sizes[sorted_labels[i]] >= min_size:
+                if region_sizes[sorted_labels[i]] >= min_relative_size * np.prod(grayscale.shape):
                     mask[labeled == sorted_labels[i]] = 1
                 else:
                     break
@@ -132,7 +120,7 @@ class Filter:
         image: SatelliteImage,
         threshold_center: float = 0.98,
         threshold_full: float = 0.7,
-        min_size: int = 50000,
+        min_relative_size: float = 0.0125,
     ) -> np.ndarray:
         """
         Masks out clouds in a SatelliteImage using two thresholds for cloud
@@ -153,8 +141,8 @@ class Filter:
             in the image. Pixels with a cloud coverage value higher than this
             threshold are classified as covered by clouds.
             Defaults to 0.7 (light grey pixels).
-        min_size (int, optional):
-            An integer representing the minimum size (in pixels) of a cloud region
+        min_relative_size (float, optional):
+            An integer representing the minimum relative size (in pixels) of a cloud region
             that will be retained in the output mask.
             Defaults to 50,000 (2,000*2,000 = 4,000,000 pixels and we want to
             detect clouds that occupy > 1.25% of the image).
@@ -182,8 +170,8 @@ class Filter:
             >>> ax.imshow(mask_full, alpha=0.3)
         """
         # Mask out clouds from the image using different thresholds
-        cloud_center = self.mask_cloud(image, threshold_center, min_size)
-        cloud_full = self.mask_cloud(image, threshold_full, min_size)
+        cloud_center = self.mask_cloud(image, threshold_center, min_relative_size)
+        cloud_full = self.mask_cloud(image, threshold_full, min_relative_size)
 
         nchannel, height, width = image.array.shape
 
