@@ -38,6 +38,7 @@ def main(
         # 4- Split les tuiles (param tiles_size)
         splitted_si = si.split(tiles_size)
 
+        # NOOOON CA VA PAS IL FAUT FAIRE LE FILTER CLOUD SUR LA GROSSE IMAGE
         # 5- Filtre too black and clouds
         filter_ = Filter()
         splitted_si_filtered = [
