@@ -1,6 +1,7 @@
 import geopandas as gpd
 import numpy as np
 from astrovision.data import SatelliteImage
+from astrovision.data.utils import generate_tiles_borders
 from rasterio.features import rasterize, shapes
 from scipy.ndimage import label
 from shapely.geometry import Polygon
@@ -124,11 +125,11 @@ class Filter:
         # Return the cloud mask
         return mask
 
-    def mask_full_cloud(
+    def create_mask_cloud(
         self,
         image: SatelliteImage,
-        threshold_center: float = 0.98,
-        threshold_full: float = 0.7,
+        threshold_center: float = 0.7,
+        threshold_full: float = 0.4,
         min_relative_size: float = 0.0125,
     ) -> np.ndarray:
         """
@@ -144,12 +145,12 @@ class Filter:
             An integer representing the threshold for coverage of the center of
             clouds in the image. Pixels with a cloud coverage value higher than
             this threshold are classified as cloud-covered.
-            Defaults to 0.98 (white pixels).
+            Defaults to 0.7 (white pixels).
         threshold_full (int, optional):
             An integer representing the threshold for coverage of the full clouds
             in the image. Pixels with a cloud coverage value higher than this
             threshold are classified as covered by clouds.
-            Defaults to 0.7 (light grey pixels).
+            Defaults to 0.4 (light grey pixels).
         min_relative_size (float, optional):
             An integer representing the minimum relative size (in pixels) of a cloud region
             that will be retained in the output mask.
@@ -173,7 +174,7 @@ class Filter:
                                         n_bands = 3,
                                         dep = "976"
                                     )
-            >>> mask_full = mask_full_cloud(image_1)
+            >>> mask_full = create_mask_cloud(image_1)
             >>> fig, ax = plt.subplots(figsize=(10, 10))
             >>> ax.imshow(np.transpose(image_1.array, (1, 2, 0))[:,:,:3])
             >>> ax.imshow(mask_full, alpha=0.3)
@@ -182,28 +183,12 @@ class Filter:
         cloud_center = self.mask_cloud(image, threshold_center, min_relative_size)
         cloud_full = self.mask_cloud(image, threshold_full, min_relative_size)
 
-        nchannel, height, width = image.array.shape
-
         # Create a list of polygons from the masked center clouds in order
         # to obtain a GeoDataFrame from it
-        polygon_list_center = []
-        for shape in list(shapes(cloud_center)):
-            polygon = Polygon(shape[0]["coordinates"][0])
-            if polygon.area > 0.85 * height * width:
-                continue
-            polygon_list_center.append(polygon)
-
-        g_center = gpd.GeoDataFrame(geometry=polygon_list_center)
+        g_center = self.mask_to_gdf(cloud_center)
 
         # Same but from the masked full clouds
-        polygon_list_full = []
-        for shape in list(shapes(cloud_full)):
-            polygon = Polygon(shape[0]["coordinates"][0])
-            if polygon.area > 0.85 * height * width:
-                continue
-            polygon_list_full.append(polygon)
-
-        g_full = gpd.GeoDataFrame(geometry=polygon_list_full)
+        g_full = self.mask_to_gdf(cloud_full)
 
         # Spatial join on the GeoDataFrames for the masked full clouds
         # and the masked center clouds
@@ -227,3 +212,36 @@ class Filter:
             )
 
         return rasterized
+
+    def mask_to_gdf(self, mask: np.array):
+        polygon_list = []
+        for shape in shapes(mask):
+            polygon = Polygon(shape[0]["coordinates"][0])
+            if polygon.area > 0.85 * mask.shape[0] * mask.shape[1]:
+                continue
+            polygon_list.append(polygon)
+
+        gdf = gpd.GeoDataFrame(geometry=polygon_list)
+        return gdf
+
+    def is_cloud(
+        self,
+        si: SatelliteImage,
+        tiles_size: int,
+        threshold_center: float,
+        threshold_full: float,
+        min_relative_size: float,
+    ):
+        mask = self.create_mask_cloud(
+            si,
+            threshold_center,
+            threshold_full,
+            min_relative_size,
+        )
+
+        indices = generate_tiles_borders(mask.shape[0], mask.shape[1], tiles_size)
+
+        masks = [mask[rows[0] : rows[1], cols[0] : cols[1]] for rows, cols in indices]
+
+        # Return vector of boolean 1 if it is a cloud 0 otherwise
+        return [1 if np.sum(mask) > np.prod(mask.shape) * 0.5 else 0 for mask in masks]
