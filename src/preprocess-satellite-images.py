@@ -38,21 +38,22 @@ def main(
         # 4- Split les tuiles (param tiles_size)
         splitted_si = si.split(tiles_size)
 
-        # NOOOON CA VA PAS IL FAUT FAIRE LE FILTER CLOUD SUR LA GROSSE IMAGE
         # 5- Filtre too black and clouds
         filter_ = Filter()
+        is_cloud = filter_.is_cloud(
+            si,
+            tiles_size=tiles_size,
+            threshold_center=0.7,
+            threshold_full=0.4,
+            min_relative_size=0.0125,
+        )
+
         splitted_si_filtered = [
             si
-            for si in splitted_si
+            for si, cloud in zip(splitted_si, is_cloud)
             if not (
                 filter_.is_too_black(si, black_value_threshold=25, black_area_threshold=0.5)
-                or filter_.is_cloud(
-                    si,
-                    tiles_size=tiles_size,
-                    threshold_center=0.7,
-                    threshold_full=0.4,
-                    min_relative_size=0.0125,
-                )
+                or cloud
             )
         ]
 
