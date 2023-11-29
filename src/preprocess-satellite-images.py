@@ -1,7 +1,8 @@
 import os
 import sys
 
-from astrovision.data import SatelliteImage
+import numpy as np
+from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 
 from src.classes.filters.filter import Filter
 from src.functions import download_data, labelling
@@ -25,7 +26,7 @@ def main(
     download_data.download_data(source, dep, year)
 
     labeler = labelling.get_labeler(type_labeler, year, dep, task)
-    for im in os.listdir(f"data/data-raw/{source}/{dep}/{year}/")[0]:
+    for im in os.listdir(f"data/data-raw/{source}/{dep}/{year}/"):
         # 2- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
             file_path=os.path.join(f"data/data-raw/{source}/{dep}/{year}/", im),
@@ -34,33 +35,48 @@ def main(
 
         # 3- Labeliser avec labeler (labeler/tache)
         label = labeler.create_label(si)
+        lsi = SegmentationLabeledSatelliteImage(si, label)
 
         # 4- Split les tuiles (param tiles_size)
-        splitted_si = si.split(tiles_size)
+        splitted_lsi = lsi.split(tiles_size)
 
         # 5- Filtre too black and clouds
         filter_ = Filter()
         is_cloud = filter_.is_cloud(
-            si,
+            lsi.satellite_image,
             tiles_size=tiles_size,
             threshold_center=0.7,
             threshold_full=0.4,
             min_relative_size=0.0125,
         )
 
-        splitted_si_filtered = [
-            si
-            for si, cloud in zip(splitted_si, is_cloud)
+        splitted_lsi_filtered = [
+            lsi
+            for lsi, cloud in zip(splitted_lsi, is_cloud)
             if not (
-                filter_.is_too_black(si, black_value_threshold=25, black_area_threshold=0.5)
+                filter_.is_too_black(
+                    lsi.satellite_image, black_value_threshold=25, black_area_threshold=0.5
+                )
                 or cloud
             )
         ]
 
         # 7- save dans data-prepro
+        os.makedirs(
+            f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/",  # noqa
+            exist_ok=True,
+        )
+        for i, lsi in enumerate(splitted_lsi_filtered):
+            filename, ext = os.path.splitext(im)
+            lsi.satellite_image.to_raster(
+                f"data/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}{ext}"  # noqa
+            )
+            np.save(
+                f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}.npy",  # noqa
+                lsi.label,
+            )
 
-        # temp
-        return label, splitted_si_filtered
+        # 8- upload to Minio
 
 
 if __name__ == "__main__":
