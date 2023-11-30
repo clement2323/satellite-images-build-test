@@ -1,4 +1,4 @@
-from src.classes.labelers.labeler import BDTOPOLabeler
+from classes.labelers.labeler import BDTOPOLabeler
 
 
 def get_labeler(type_labeler, year, dep, task):

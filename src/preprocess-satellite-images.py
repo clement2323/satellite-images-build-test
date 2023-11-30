@@ -4,16 +4,8 @@ import sys
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 
-from src.classes.filters.filter import Filter
-from src.functions import download_data, labelling
-
-# source = "PLEIADES"
-# dep = "MAYOTTE"
-# year = "2020"
-# n_bands = 3
-# type_labeler = "BDTOPO"
-# task = "segmentation"
-# tiles_size = 250
+from classes.filters.filter import Filter
+from functions import download_data, labelling
 
 
 def main(

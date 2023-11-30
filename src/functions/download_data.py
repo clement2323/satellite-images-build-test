@@ -26,7 +26,6 @@ def download_data(source: str, dep: str, year: str):
 
     """
 
-    print("\n*** 1- Téléchargement des données...\n")
     s3_path = f"projet-slums-detection/data-raw/{source}/{dep}/{year}/"
     local_path = f"data/data-raw/{source}/{dep}/{year}/"
 
@@ -36,8 +35,6 @@ def download_data(source: str, dep: str, year: str):
 
         # Download data from S3 to local path
         fs.download(rpath=s3_path, lpath=local_path, recursive=True)
-
-        print("\n*** Téléchargement terminé !\n")
 
     except FileNotFoundError:
         print(f"Error: The specified data path '{s3_path}' does not exist on the S3 bucket.")

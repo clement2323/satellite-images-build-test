@@ -9,7 +9,7 @@ import pandas as pd
 from astrovision.data import SatelliteImage
 from rasterio.features import rasterize
 
-from src.functions import download_data
+from functions import download_data
 
 
 class Labeler(ABC):
