@@ -3,6 +3,7 @@ import sys
 
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
+from tqdm import tqdm
 
 from classes.filters.filter import Filter
 from functions import download_data, labelling
@@ -26,7 +27,7 @@ def main(
     )
 
     print("\n*** 3- Annotation, découpage et filtrage des images...\n")
-    for im in os.listdir(f"data/data-raw/{source}/{dep}/{year}/"):
+    for im in tqdm(os.listdir(f"data/data-raw/{source}/{dep}/{year}/")):
         # 2- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
             file_path=os.path.join(f"data/data-raw/{source}/{dep}/{year}/", im),
