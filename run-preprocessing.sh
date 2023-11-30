@@ -5,10 +5,10 @@ source ./setup.sh
 export SOURCE="PLEIADES"
 export DEPARTMENT="MAYOTTE"
 export YEAR="2020"
-export NUMBER_BANDS=3
+export NUMBER_BANDS="3"
 export LABELER="BDTOPO"
 export TASK="segmentation"
-export TILE_SIZE=250
+export TILE_SIZE="250"
 
 # Run preprocessing
 python src/preprocess-satellite-images.py $SOURCE $DEPARTMENT $YEAR $NUMBER_BANDS $LABELER $TASK $TILE_SIZE

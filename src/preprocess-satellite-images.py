@@ -30,7 +30,7 @@ def main(
         # 2- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
             file_path=os.path.join(f"data/data-raw/{source}/{dep}/{year}/", im),
-            n_bands=n_bands,
+            n_bands=int(n_bands),
         )
 
         # 3- Labeliser avec labeler (labeler/tache)
@@ -38,7 +38,7 @@ def main(
         lsi = SegmentationLabeledSatelliteImage(si, label)
 
         # 4- Split les tuiles (param tiles_size)
-        splitted_lsi = lsi.split(tiles_size)
+        splitted_lsi = lsi.split(int(tiles_size))
 
         # 5- Filtre too black and clouds
         filter_ = Filter()
@@ -46,7 +46,7 @@ def main(
         if source == "PLEIADES":
             is_cloud = filter_.is_cloud(
                 lsi.satellite_image,
-                tiles_size=tiles_size,
+                tiles_size=int(tiles_size),
                 threshold_center=0.7,
                 threshold_full=0.4,
                 min_relative_size=0.0125,
