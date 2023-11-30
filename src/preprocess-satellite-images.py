@@ -22,10 +22,18 @@ def main(
     """
     Main method.
     """
-    # 1- download pour (dep/annee)
+    print("\n*** 1- Téléchargement des données...\n")
     download_data.download_data(source, dep, year)
 
+    print("\n*** 2- Téléchargement de la base d'annotation...\n")
     labeler = labelling.get_labeler(type_labeler, year, dep, task)
+
+    os.makedirs(
+        f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/",  # noqa
+        exist_ok=True,
+    )
+
+    print("\n*** 3- Annotation, découpage et filtrage des images...\n")
     for im in os.listdir(f"data/data-raw/{source}/{dep}/{year}/"):
         # 2- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
@@ -42,13 +50,17 @@ def main(
 
         # 5- Filtre too black and clouds
         filter_ = Filter()
-        is_cloud = filter_.is_cloud(
-            lsi.satellite_image,
-            tiles_size=tiles_size,
-            threshold_center=0.7,
-            threshold_full=0.4,
-            min_relative_size=0.0125,
-        )
+
+        if source == "PLEIADES":
+            is_cloud = filter_.is_cloud(
+                lsi.satellite_image,
+                tiles_size=tiles_size,
+                threshold_center=0.7,
+                threshold_full=0.4,
+                min_relative_size=0.0125,
+            )
+        else:
+            is_cloud = [0] * len(splitted_lsi.satellite_image)
 
         splitted_lsi_filtered = [
             lsi
@@ -62,10 +74,6 @@ def main(
         ]
 
         # 7- save dans data-prepro
-        os.makedirs(
-            f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/",  # noqa
-            exist_ok=True,
-        )
         for i, lsi in enumerate(splitted_lsi_filtered):
             filename, ext = os.path.splitext(im)
             lsi.satellite_image.to_raster(
@@ -76,7 +84,7 @@ def main(
                 lsi.label,
             )
 
-        # 8- upload to Minio
+    print("\n*** 4- Preprocessing terminé !\n")
 
 
 if __name__ == "__main__":
