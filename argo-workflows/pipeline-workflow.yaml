@@ -7,13 +7,11 @@ spec:
   arguments:
     parameters:
       - name: preprocessing-conf-list
-        value: |
-          [
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "125"},
-          ]
+        value: '[
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"}]'
   templates:
     # Entrypoint DAG template
     - name: main
@@ -23,7 +21,7 @@ spec:
           - name: start-pipeline
             template: start-pipeline-wt
           # Task 1: Preprocess images
-          - name: train-model-with-params
+          - name: run-preprocessing-with-params
             dependencies: [ start-pipeline ]
             template: run-preprocessing-wt
             arguments:
@@ -69,8 +67,8 @@ spec:
         image: inseefrlab/onyxia-vscode-pytorch:py3.10.13
         imagePullPolicy: Always
         command: [sh, -c]
-        args: ["git clone https://github.com/InseeFrLab/satellite-images-preprocess.git
-              cd satellite-images-preprocess/
+        args: ["git clone https://github.com/InseeFrLab/satellite-images-preprocess.git &&
+              cd satellite-images-preprocess/ &&
               source ./setup.sh &&
               python src/preprocess-satellite-images.py {{inputs.parameters.src}} {{inputs.parameters.dep}} {{inputs.parameters.year}} {{inputs.parameters.nb_bands}} {{inputs.parameters.labeler}} {{inputs.parameters.task}} {{inputs.parameters.tile_size}} &&
               mc cp -r data/data-preprocessed/ s3/projet-slums-detection/data-preprocessed/"]
