@@ -32,7 +32,7 @@ spec:
             { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
 
             { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"}
             ]'
   templates:
     # Entrypoint DAG template
@@ -91,7 +91,11 @@ spec:
         command: ["/bin/bash", -c]
         args: ["git clone https://github.com/InseeFrLab/satellite-images-preprocess.git &&
               cd satellite-images-preprocess/ &&
-              source ./setup.sh &&
+              sudo apt-get update &&
+              sudo apt-get install python3-gdal -y &&
+              sudo apt-get install libgdal-dev -y &&
+              pip install -r requirements.txt &&
+              export MC_HOST_s3=https://$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY@$AWS_S3_ENDPOINT &&
               python src/preprocess-satellite-images.py {{inputs.parameters.src}} {{inputs.parameters.dep}} {{inputs.parameters.year}} {{inputs.parameters.nb_bands}} {{inputs.parameters.labeler}} {{inputs.parameters.task}} {{inputs.parameters.tile_size}} &&
               mc cp -r data/data-preprocessed/ s3/projet-slums-detection/data-preprocessed/"]
         env:
