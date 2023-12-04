@@ -1,5 +1,5 @@
 gdal==3.4.1
 pre-commit==3.5.0
 geopandas==0.14.1
-astrovision==0.2.1
+astrovision==0.3.1
 scipy==1.11.4
