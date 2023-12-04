@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: parallel-preprocessing-
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: preprocessing-conf-list
+        value: |
+          [
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO"", "task": "segmentation", "tile_size": "125"},
+          ]
+  templates:
+    # Entrypoint DAG template
+    - name: main
+      dag:
+        tasks:
+          # Task 0: Start pipeline
+          - name: start-pipeline
+            template: start-pipeline-wt
+          # Task 1: Preprocess images
+          - name: train-model-with-params
+            dependencies: [ start-pipeline ]
+            template: run-preprocessing-wt
+            arguments:
+              parameters:
+                - name: src
+                  value: "{{item.src}}"
+                - name: dep
+                  value: "{{item.dep}}"
+                - name: year
+                  value: "{{item.year}}"
+                - name: nb_bands
+                  value: "{{item.nb_bands}}"
+                - name: labeler
+                  value: "{{item.labeler}}"
+                - name: task
+                  value: "{{item.task}}"
+                - name: tile_size
+                  value: "{{item.tile_size}}"
+            # Pass the inputs to the task using "withParam"
+            withParam: "{{workflow.parameters.preprocessing-conf-list}}"
+
+    # Now task container templates are defined
+    # Worker template for task 0 : start-pipeline
+    - name: start-pipeline-wt
+      inputs:
+      container:
+        image: busybox
+        command: [ sh, -c ]
+        args: [ "echo Starting pipeline" ]
+
+    # Worker template for task-1 : train model with params
+    - name: run-preprocessing-wt
+      inputs:
+        parameters:
+          - name: src
+          - name: dep
+          - name: year
+          - name: nb_bands
+          - name: labeler
+          - name: task
+          - name: tile_size
+      container:
+        image: inseefrlab/onyxia-vscode-pytorch:py3.10.13
+        imagePullPolicy: Always
+        command: [sh, -c]
+        args: ["source ./setup.sh &&
+              python src/preprocess-satellite-images.py {{inputs.parameters.src}} {{inputs.parameters.dep}} {{inputs.parameters.year}} {{inputs.parameters.nb_bands}} {{inputs.parameters.labeler}} {{inputs.parameters.task}} {{inputs.parameters.tile_size}} &&
+              mc cp -r data/data-preprocessed/ s3/projet-slums-detection/data-preprocessed/"]
