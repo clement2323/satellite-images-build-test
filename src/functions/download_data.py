@@ -61,9 +61,9 @@ def load_bdtopo(
     """
 
     if int(year) >= 2019:
-        couche = "BATIMENT"
+        couche, ext = ("BATIMENT", "shp")
     elif int(year) < 2019:
-        couche = "BATI_INDIFFERENCIE"
+        couche, ext = ("BATI_INDIFFERENCIE", "SHP")
 
     fs = get_file_system()
 
@@ -76,6 +76,6 @@ def load_bdtopo(
         recursive=True,
     )
 
-    df = gpd.read_file(f"{local_path}{couche}.shp")
+    df = gpd.read_file(f"{local_path}{couche}.{ext}")
 
     return df
