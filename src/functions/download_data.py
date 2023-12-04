@@ -67,7 +67,7 @@ def load_bdtopo(
 
     fs = get_file_system()
 
-    s3_path = f"projet-slums-detection/data-label/BDTOPO/{dep}/{year}/BATIMENT.*"
+    s3_path = f"projet-slums-detection/data-label/BDTOPO/{dep}/{year}/{couche}.*"
     local_path = f"data/data-label/BDTOPO/{dep}/{year}/"
 
     fs.download(
