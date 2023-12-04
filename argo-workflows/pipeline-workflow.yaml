@@ -11,7 +11,29 @@ spec:
             { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
             { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
             { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"}]'
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+
+            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
+            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            ]'
   templates:
     # Entrypoint DAG template
     - name: main
@@ -66,9 +88,25 @@ spec:
       container:
         image: inseefrlab/onyxia-vscode-pytorch:py3.10.13
         imagePullPolicy: Always
-        command: [sh, -c]
+        command: ["/bin/bash", -c]
         args: ["git clone https://github.com/InseeFrLab/satellite-images-preprocess.git &&
               cd satellite-images-preprocess/ &&
               source ./setup.sh &&
               python src/preprocess-satellite-images.py {{inputs.parameters.src}} {{inputs.parameters.dep}} {{inputs.parameters.year}} {{inputs.parameters.nb_bands}} {{inputs.parameters.labeler}} {{inputs.parameters.task}} {{inputs.parameters.tile_size}} &&
               mc cp -r data/data-preprocessed/ s3/projet-slums-detection/data-preprocessed/"]
+        env:
+          # env var for s3 connexion
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: my-s3-creds
+                key: accessKey
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: my-s3-creds
+                key: secretKey
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: AWS_S3_ENDPOINT
+            value: minio.lab.sspcloud.fr
