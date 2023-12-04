@@ -86,7 +86,7 @@ spec:
           - name: task
           - name: tile_size
       container:
-        image: inseefrlab/satellite-images-preprocess:main
+        image: inseefrlab/satellite-images-preprocess:v0.0.1
         imagePullPolicy: Always
         command: ["/bin/bash", -c]
         args: ["git clone https://github.com/InseeFrLab/satellite-images-preprocess.git &&
