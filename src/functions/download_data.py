@@ -15,36 +15,6 @@ def get_file_system() -> S3FileSystem:
     )
 
 
-def download_data(source: str, dep: str, year: str):
-    """
-    Download data from a specified source, department, and year.
-
-    Parameters:
-    - source (str): The data source identifier.
-    - dep (str): The department identifier.
-    - year (str): The year for which data should be downloaded.
-
-    """
-
-    s3_path = f"projet-slums-detection/data-raw/{source}/{dep}/{year}/"
-    local_path = f"data/data-raw/{source}/{dep}/{year}/"
-
-    try:
-        # Initialize S3 file system
-        fs = get_file_system()
-
-        # Download data from S3 to local path
-        fs.download(rpath=s3_path, lpath=local_path, recursive=True)
-
-    except FileNotFoundError:
-        print(f"Error: The specified data path '{s3_path}' does not exist on the S3 bucket.")
-        raise
-
-    except Exception as e:
-        print(f"Error: An unexpected error occurred during the download process. {e}")
-        raise
-
-
 def load_bdtopo(
     year: str,
     dep: str,

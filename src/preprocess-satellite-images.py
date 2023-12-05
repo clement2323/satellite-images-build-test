@@ -6,7 +6,7 @@ from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from tqdm import tqdm
 
 from classes.filters.filter import Filter
-from functions import download_data, labelling
+from functions import get_file_system, labelling
 
 
 def main(
@@ -15,10 +15,10 @@ def main(
     """
     Main method.
     """
-    print("\n*** 1- Téléchargement des données...\n")
-    download_data.download_data(source, dep, year)
+    # Initialize S3 file system
+    fs = get_file_system()
 
-    print("\n*** 2- Téléchargement de la base d'annotation...\n")
+    print("\n*** 1- Téléchargement de la base d'annotation...\n")
     labeler = labelling.get_labeler(type_labeler, year, dep, task)
 
     os.makedirs(
@@ -26,22 +26,22 @@ def main(
         exist_ok=True,
     )
 
-    print("\n*** 3- Annotation, découpage et filtrage des images...\n")
-    for im in tqdm(os.listdir(f"data/data-raw/{source}/{dep}/{year}/")):
-        # 2- Ouvrir avec SatelliteImage
+    print("\n*** 2- Annotation, découpage et filtrage des images...\n")
+    for im in tqdm(fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")):
+        # 1- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
-            file_path=os.path.join(f"data/data-raw/{source}/{dep}/{year}/", im),
+            file_path=f"s3://{im}",
             n_bands=int(n_bands),
         )
 
-        # 3- Labeliser avec labeler (labeler/tache)
+        # 2- Labeliser avec labeler (labeler/tache)
         label = labeler.create_label(si)
         lsi = SegmentationLabeledSatelliteImage(si, label)
 
-        # 4- Split les tuiles (param tiles_size)
+        # 3- Split les tuiles (param tiles_size)
         splitted_lsi = lsi.split(int(tiles_size))
 
-        # 5- Filtre too black and clouds
+        # 4- Filtre too black and clouds
         filter_ = Filter()
 
         if source == "PLEIADES":
@@ -66,9 +66,9 @@ def main(
             )
         ]
 
-        # 7- save dans data-prepro
+        # 5- save dans data-prepro
         for i, lsi in enumerate(splitted_lsi_filtered):
-            filename, ext = os.path.splitext(im)
+            filename, ext = os.path.splitext(os.path.basename(im))
             lsi.satellite_image.to_raster(
                 f"data/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}{ext}"  # noqa
             )
