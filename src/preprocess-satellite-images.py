@@ -6,7 +6,7 @@ from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from tqdm import tqdm
 
 from classes.filters.filter import Filter
-from functions import get_file_system, labelling
+from functions import download_data, labelling
 
 
 def main(
@@ -16,7 +16,7 @@ def main(
     Main method.
     """
     # Initialize S3 file system
-    fs = get_file_system()
+    fs = download_data.get_file_system()
 
     print("\n*** 1- Téléchargement de la base d'annotation...\n")
     labeler = labelling.get_labeler(type_labeler, year, dep, task)
