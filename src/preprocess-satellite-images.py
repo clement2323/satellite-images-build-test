@@ -77,7 +77,7 @@ def main(
                 lsi.label,
             )
 
-    print("\n*** 4- Preprocessing terminé !\n")
+    print("\n*** 3- Preprocessing terminé !\n")
 
 
 if __name__ == "__main__":
