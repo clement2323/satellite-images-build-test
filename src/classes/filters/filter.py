@@ -6,6 +6,7 @@ from rasterio.features import rasterize, shapes
 from scipy.ndimage import label
 from shapely.geometry import Polygon
 
+from typing import List
 
 class Filter:
     """
@@ -16,79 +17,63 @@ class Filter:
         return
 
     def is_too_black(
-        self, image: SatelliteImage, black_value_threshold=100, black_area_threshold=0.5
+        self, image: SatelliteImage, black_value_threshold: int = 100, black_area_threshold: float = 0.5
     ) -> bool:
         """
-        Determine if a satellite image is too black
-        based on pixel values and black area proportion.
+        Determine if an image has a significant proportion of black pixels.
 
-        This function converts a satellite image to grayscale and
-        filters it based on the number of black pixels and their proportion.
-        A pixel is considered black if its value is less than the specified
-        threshold (black_value_threshold).
-        formula used : 0.2989red + 0.587green + 0.114blue
-        The image is considered too black if the proportion of black pixels
-        is greater than or equal to the specified threshold (black_area_threshold).
-
-        Args:
-            image (SatelliteImage): The input satellite image.
-            black_value_threshold (int, optional): The threshold value
-                for considering a pixel as black. Default is 100.
-            black_area_threshold (float, optional): The threshold for
-                the proportion of black pixels. Default is 0.5.
+        Parameters:
+        - image (SatelliteImage): The input satellite image.
+        - black_value_threshold (int, optional): The intensity threshold to consider a pixel as black.
+          Pixels with intensity values less than this threshold are considered black. Default is 100.
+        - black_area_threshold (float, optional): The threshold for the proportion of black pixels in the image.
+          If the ratio of black pixels exceeds this threshold, the function returns True. Default is 0.5.
 
         Returns:
-            bool: True if the proportion of black pixels is greater than or equal
-                to the threshold, False otherwise.
+        - bool: True if the proportion of black pixels is greater than or equal to the threshold, False otherwise.
         """
+        # Convert the RGB image to grayscale
         gray_image = 0.2989 * image.array[0] + 0.5870 * image.array[1] + 0.1140 * image.array[2]
+
+        # Count the number of black pixels
         nb_black_pixels = np.sum(gray_image < black_value_threshold)
 
-        if (nb_black_pixels / np.prod(gray_image.shape)) >= black_area_threshold:
-            return True
-        else:
-            return False
+        # Calculate the proportion of black pixels
+        black_pixel_ratio = nb_black_pixels / np.prod(gray_image.shape)
+
+        # Check if the proportion exceeds the threshold
+        return black_pixel_ratio >= black_area_threshold
+
 
     def mask_cloud(
-        self, image: SatelliteImage, threshold: float = 0.98, min_relative_size: float = 0.0125
+        self, image: SatelliteImage, threshold: float = 0.7, min_relative_size: float = 0.0125
     ) -> np.ndarray:
         """
-        Detects clouds in a SatelliteImage using a threshold-based approach
-        (grayscale threshold and pixel cluster size threshold) and
-        returns a binary mask of the detected clouds.
-        This function works on RGB images in the format (C x H x W)
-        encoded in float.
+        Generate a cloud mask based on pixel intensity and cluster size.
 
-        Args:
-            image (SatelliteImage):
-                The input satellite image to process.
-            threshold (float):
-                The threshold value to use for detecting clouds on the image
-                transformed into grayscale. A pixel is considered part of a
-                cloud if its value is greater than this threshold.
-                Default to 0.98.
-            min_relative_size (float):
-                The minimum relative size (in pixels) of a cloud region to be
-                considered valid.
-                Default to 1.25%.
+        Parameters:
+        - image (SatelliteImage): The input satellite image.
+        - threshold (float, optional): The relative intensity threshold to classify pixels as cloud.
+          Default is 0.7.
+        - min_relative_size (float, optional): The minimum relative size of a cluster to be considered as a cloud.
+          Default is 0.0125.
 
         Returns:
-            mask (np.ndarray):
-                A binary mask of the detected clouds in the input image.
+        - np.ndarray: A binary mask indicating the cloud regions in the image.
 
         Example:
             >>> filename_1 = '../data/PLEIADES/2020/MAYOTTE/
             ORT_2020052526656219_0508_8599_U38S_8Bits.jp2'
             >>> date_1 = date.fromisoformat('2020-01-01')
-            >>> image_1 = SatelliteImage.from_raster(
+            >>> si = SatelliteImage.from_raster(
                                         filename_1,
                                         date = date_1,
                                         n_bands = 3,
                                         dep = "976"
                                     )
-            >>> mask = mask_cloud(image_1)
+            >>> mask = mask_cloud(si)
             >>> fig, ax = plt.subplots(figsize=(10, 10))
-            >>> ax.imshow(np.transpose(image_1.array, (1, 2, 0))[:,:,:3])
+            >>> ax.imshow(np.transpose(si.array, (1, 2, 0))[:,:,:3])
             >>> ax.imshow(mask, alpha=0.3)
         """
         # Convert the RGB image to grayscale
@@ -96,7 +81,7 @@ class Filter:
         grayscale = np.sum(weights * image.array, axis=0)
         grayscale = grayscale.astype(image.array.dtype)
 
-        # Compute absolute threshold
+        # Compute absolute threshold based on image dtype
         if grayscale.dtype == np.uint8:
             absolute_threshold = threshold * (2**8 - 1)
         elif grayscale.dtype == np.uint16:
@@ -133,37 +118,20 @@ class Filter:
         min_relative_size: float = 0.0125,
     ) -> np.ndarray:
         """
-        Masks out clouds in a SatelliteImage using two thresholds for cloud
-        coverage, and returns the resulting cloud mask as a numpy array.
+        Create a binary mask indicating cloud regions in the input satellite image.
 
         Parameters:
-        -----------
-        image (SatelliteImage):
-            An instance of the SatelliteImage class representing the input image
-            to be processed.
-        threshold_center (int, optional):
-            An integer representing the threshold for coverage of the center of
-            clouds in the image. Pixels with a cloud coverage value higher than
-            this threshold are classified as cloud-covered.
-            Defaults to 0.7 (white pixels).
-        threshold_full (int, optional):
-            An integer representing the threshold for coverage of the full clouds
-            in the image. Pixels with a cloud coverage value higher than this
-            threshold are classified as covered by clouds.
-            Defaults to 0.4 (light grey pixels).
-        min_relative_size (float, optional):
-            An integer representing the minimum relative size (in pixels) of a cloud region
-            that will be retained in the output mask.
-            Defaults to 50,000 (2,000*2,000 = 4,000,000 pixels and we want to
-            detect clouds that occupy > 1.25% of the image).
+        - image (SatelliteImage): The input satellite image.
+        - threshold_center (float, optional): The intensity threshold for center clouds.
+          Default is 0.7.
+        - threshold_full (float, optional): The intensity threshold for full clouds.
+          Default is 0.4.
+        - min_relative_size (float, optional): The minimum relative size of a cloud cluster.
+          Default is 0.0125.
 
         Returns:
-        --------
-        rasterized (np.ndarray):
-            A numpy array representing the rasterized version of the cloud mask.
-            Pixels with a value of 1 are classified as cloud-free, while pixels
-            with a value of 0 are classified as cloud-covered.
-
+        - np.ndarray: A binary mask indicating the cloud regions in the image.
+        
         Example:
             >>> filename_1 = '../data/PLEIADES/2020/MAYOTTE/
             ORT_2020052526656219_0508_8599_U38S_8Bits.jp2'
@@ -179,19 +147,18 @@ class Filter:
             >>> ax.imshow(np.transpose(image_1.array, (1, 2, 0))[:,:,:3])
             >>> ax.imshow(mask_full, alpha=0.3)
         """
-        # Mask out clouds from the image using different thresholds
+
+        # Mask out center clouds from the image using the specified threshold
         cloud_center = self.mask_cloud(image, threshold_center, min_relative_size)
+
+        # Mask out full clouds from the image using the specified threshold
         cloud_full = self.mask_cloud(image, threshold_full, min_relative_size)
 
-        # Create a list of polygons from the masked center clouds in order
-        # to obtain a GeoDataFrame from it
+        # Create GeoDataFrames from the masked center and full clouds
         g_center = self.mask_to_gdf(cloud_center)
-
-        # Same but from the masked full clouds
         g_full = self.mask_to_gdf(cloud_full)
 
-        # Spatial join on the GeoDataFrames for the masked full clouds
-        # and the masked center clouds
+        # Spatial join on the GeoDataFrames for the masked full and center clouds
         result = gpd.sjoin(g_full, g_center, how="inner", predicate="intersects")
 
         # Remove any duplicate geometries
@@ -213,12 +180,26 @@ class Filter:
 
         return rasterized
 
-    def mask_to_gdf(self, mask: np.array):
+    def mask_to_gdf(self, mask: np.array) -> gpd.GeoDataFrame:
+        """
+        Convert a binary mask to a GeoDataFrame containing polygons.
+
+        Parameters:
+        - mask (np.ndarray): Binary mask indicating regions of interest.
+
+        Returns:
+        - gpd.GeoDataFrame: GeoDataFrame containing polygons derived from the input mask.
+        """
+
         polygon_list = []
+
         for shape in shapes(mask):
             polygon = Polygon(shape[0]["coordinates"][0])
+
+            # Skip polygons with area greater than 85% of the mask area
             if polygon.area > 0.85 * mask.shape[0] * mask.shape[1]:
                 continue
+
             polygon_list.append(polygon)
 
         gdf = gpd.GeoDataFrame(geometry=polygon_list)
@@ -231,7 +212,22 @@ class Filter:
         threshold_center: float,
         threshold_full: float,
         min_relative_size: float,
-    ):
+    ) -> List[int]:
+        """
+        Determine cloud presence in tiles within a satellite image.
+
+        Parameters:
+        - si (SatelliteImage): The input satellite image.
+        - tiles_size (int): The size of tiles for analysis.
+        - threshold_center (float): The intensity threshold for center clouds.
+        - threshold_full (float): The intensity threshold for full clouds.
+        - min_relative_size (float): The minimum relative size of a cloud cluster.
+
+        Returns:
+        - List[int]: A list of binary values (1 for cloud, 0 for non-cloud) for each tile.
+        """
+
+        # Create a cloud mask for the entire image
         mask = self.create_mask_cloud(
             si,
             threshold_center,
@@ -239,9 +235,11 @@ class Filter:
             min_relative_size,
         )
 
+        # Generate tile indices
         indices = generate_tiles_borders(mask.shape[0], mask.shape[1], tiles_size)
 
+        # Extract masks for each tile
         masks = [mask[rows[0] : rows[1], cols[0] : cols[1]] for rows, cols in indices]
 
-        # Return vector of boolean 1 if it is a cloud 0 otherwise
-        return [1 if np.sum(mask) > np.prod(mask.shape) * 0.5 else 0 for mask in masks]
+        # Return a list of binary values indicating cloud presence in each tile
+        return [1 if np.sum(tile_mask) > np.prod(tile_mask.shape) * 0.5 else 0 for tile_mask in masks]
