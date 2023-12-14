@@ -30,7 +30,7 @@ def main(
     for im in tqdm(fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")):
         # 1- Ouvrir avec SatelliteImage
         si = SatelliteImage.from_raster(
-            file_path=f"s3://{im}",
+            file_path=f"/vsis3/{im}",
             n_bands=int(n_bands),
         )
 
