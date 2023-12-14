@@ -38,8 +38,9 @@ json_string="${json_string%,*} }"
 # Write the JSON string to a file
 echo "$json_string" > GCP_credentials.json
 
-sudo apt-get update
-sudo apt-get install python3-gdal -y
-sudo apt-get install libgdal-dev -y
+# Install gdal from conda
+mamba install -c conda-forge gdal -y
+export PROJ_LIB=/opt/mamba/share/proj
+
 pip install -r requirements.txt
 pre-commit install
