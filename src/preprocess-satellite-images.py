@@ -1,5 +1,6 @@
 import os
 import sys
+import yaml
 
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
@@ -66,6 +67,12 @@ def main(
             )
         ]
 
+        # Instanciate a dict of metrics for normalization
+        metrics = {
+            "mean": [],
+            "std": [],
+        }
+
         # 5- save dans data-prepro
         for i, lsi in enumerate(splitted_lsi_filtered):
             filename, ext = os.path.splitext(os.path.basename(im))
@@ -76,6 +83,20 @@ def main(
                 f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}.npy",  # noqa
                 lsi.label,
             )
+            # get mean and std of an image
+            metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
+            metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
+
+        metrics["mean"] = np.vstack(metrics["mean"]).mean(axis=0).tolist()
+        metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
+        yaml_data = yaml.dump(metrics, default_flow_style=False)
+
+        # Save metrics file in s3
+        with fs.open(
+            f"projet-slums-detection/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/metrics-normalization.yaml",
+            "wb",
+        ) as f:
+            f.write(yaml_data.encode("utf-8"))
 
     print("\n*** 3- Preprocessing terminé !\n")
 
