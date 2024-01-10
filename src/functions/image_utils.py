@@ -1,0 +1,230 @@
+import re
+
+from pyproj import Transformer
+from utils.mappings import dep_to_crs, name_dep_to_num_dep
+
+
+def crs_to_gps_image(
+    filepath: str,
+) -> (float, float):
+    """
+    Gives the gps point of the left-top boundingbox of the image.
+    These bounds are found in the filename (quicker than if we have
+    to open all the images). So this method is based on the filenames
+    of the pleiades images. Argument is either a SatelliteImage or a filepath.
+
+    Args:
+        filepath (str):
+            The full filepath.
+
+    Returns:
+        GPS coordinate (float, float):
+            Latitude and longitutude.
+
+    Example:
+        >>> filename_1 = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
+        ORT_2022_0712_1606_U20N_8Bits.jp2'
+        >>> crs_to_gps_image(filename_1)
+        (14.518646888444412, -61.032716786523345)
+    """
+    delimiters = ["-", "_"]
+
+    pattern = "|".join(delimiters)
+
+    split_filepath = filepath.split("/")
+    split_filename = re.split(pattern, split_filepath[-1])
+
+    x = float(split_filename[2]) * 1000.0  # left
+    y = float(split_filename[3]) * 1000.0  # top
+
+    dep_num = name_dep_to_num_dep[split_filepath[3]]
+    str_crs = dep_to_crs[dep_num]
+
+    transformer = Transformer.from_crs(f"EPSG:{str_crs}", "EPSG:4326", always_xy=True)
+    lon, lat = transformer.transform(x, y)
+
+    # Return GPS coordinates (latitude, longitude)
+    return lat, lon
+
+
+def gps_to_crs_point(
+    lat: float,
+    lon: float,
+    crs: int,
+) -> (float, float):
+    """
+    Gives the CRS point of a GPS point.
+
+    Args:
+        lat (float):
+            Latitude
+        lon (float):
+            Longitude
+        crs (int):
+            The coordinate system of the point.
+
+    Returns:
+        CRS coordinate (float, float):
+
+    Example:
+        >>> gps_to_crs_point(14.636195717948983, -61.04095442371388, '5490')
+        (711000.0000002225, 1618999.9999483444)
+    """
+    # Convert GPS coordinates to coordinates in destination coordinate system
+    # (CRS)
+    transformer = Transformer.from_crs(
+        "EPSG:4326", f"EPSG:{str(crs)}", always_xy=True
+    )  # in case the input CRS is of integer type
+    x, y = transformer.transform(lon, lat)
+    # because y=lat and x=lon, the gps coordinates are in (lat,lon)
+
+    # Return coordinates in the specified CRS
+    return x, y
+
+
+def find_image_of_point(
+    coordinates: list,
+    dep: str,
+    year: str,
+    fs,
+    coord_gps: bool = True,
+) -> str:
+    """
+    Gives the image in the folder which contains the point (gps or crs).
+    This method is based on the filenames of the pleiades images.
+    Returns a message if the image is not in the folder.
+
+    Args:
+        coordinates (list):
+            [x,y] CRS coordinate or [lat, lon] gps coordinate
+        dep (str):
+            The department in which we search the image containing
+            the point.
+        year(str):
+            The year when the image was photographed.
+        fs
+        coord_gps (boolean):
+            Specifies if the coordinate is a gps coordinate or not.
+
+    Returns:
+        str:
+            The path of the image containing the point.
+
+    Examples:
+        >>> folder = "projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/"
+        >>> find_image_of_point([713000.0, 1606000.0], "MARTINIQUE", "2022", fs, False)
+        'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/ORT_2022_0712_1606_U20N_8Bits.jp2'
+
+        >>> folder = "projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/"
+        >>> find_image_of_point([14.635338, -61.038345], "MARTINIQUE", "2022", fs)
+        'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/ORT_2022_0711_1619_U20N_8Bits.jp2'
+    """
+    folder_path = f"projet-slums-detection/data-raw/'PLEIADES/{dep}/{year}/"
+
+    if coord_gps:
+        # Retrieve the crs via the department
+
+        split_folder = folder_path.split("/")
+
+        departement = split_folder[3]
+        dep_num = name_dep_to_num_dep[departement]
+        crs = dep_to_crs[dep_num]
+
+        lat, lon = coordinates
+        x, y = gps_to_crs_point(lat, lon, crs)
+
+    else:
+        x, y = coordinates
+
+    # Retrieve left-top coordinates
+    delimiters = ["-", "_"]
+
+    pattern = "|".join(delimiters)
+
+    for filename in fs.ls(folder_path):
+        split_filename = filename.split("/")[-1]
+        split_filename = re.split(pattern, split_filename)
+        left = float(split_filename[2]) * 1000
+        top = float(split_filename[3]) * 1000
+        right = left + 1000.0
+        bottom = top - 1000.0
+
+        if left <= x <= right:
+            if bottom <= y <= top:
+                return filename
+    else:
+        return "The point is not find in the folder."
+
+
+def find_image_different_years(
+    filepath: str,
+    different_year: int,
+    fs,
+) -> str:
+    """
+    Finds the image which represents the same place but in a different year.
+    The arguments can be either a SatteliteImage or the filepath of an image.
+    This method is based on the filenames of the pleiades images.
+
+    Args:
+        filepath (str):
+            The filepath of the image.
+        different_year (int):
+            The year we are interested in.
+        fs
+
+    Returns:
+        str:
+            The path of the image representing the same place but in a
+            different period of time.
+
+    Example:
+        >>> filename_1 = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
+        ORT_2022_0711_1619_U20N_8Bits.jp2'
+        >>> find_image_different_years(filename_1, 2018, fs)
+        'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2018/972-2017-0711-1619-U20N-0M50-RVB-E100.jp2'
+    """
+    # Retrieve base department
+    split_folder = filepath.split("/")
+
+    dep = split_folder[3]
+    year = different_year
+
+    folder_path = f"projet-slums-detection/data-raw/PLEIADES/{dep}/{year}/"
+
+    # Retrieve left-top coordinates
+    if filepath.find("_") != -1:
+        pattern = "_"
+
+    elif filepath.find("-") != -1:
+        pattern = "-"
+
+    split_filepath = filepath.split("/")[-1]
+    split_filepath = split_filepath.split(pattern)
+
+    if len(fs.ls(folder_path)) == 0:
+        return f"Il n'existe pas de dossier d'images du département {dep} pour \
+l'année {different_year}"
+
+    else:
+        filename = fs.ls(folder_path)[0]
+
+        if filename.find("_") != -1:
+            pattern = "_"
+
+        elif filename.find("-") != -1:
+            pattern = "-"
+
+        split_filename = filename.split("/")[-1]
+        split_filename = split_filename.split(pattern)
+
+        split_filename[2] = split_filepath[2]
+        split_filename[3] = split_filepath[3]
+
+        new_filename = pattern.join(split_filename)
+        new_filename = f"{folder_path}{new_filename}"
+
+        if new_filename in fs.ls(folder_path):
+            return new_filename
+        else:
+            return "There is no image of this place in the requested year in the database Pléiades."
