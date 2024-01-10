@@ -11,6 +11,7 @@ def get_labeler(type_labeler, year, dep, task):
     - dep (str): The dep parameter for labeler instantiation.
     - task (str): The task parameter for labeler instantiation.
 
+
     Returns:
     - Labeler: An instance of the specified labeler type.
     """

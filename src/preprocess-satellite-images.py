@@ -1,38 +1,72 @@
 import os
 import sys
+import yaml
 
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from tqdm import tqdm
 
 from classes.filters.filter import Filter
-from functions import download_data, labelling
+from functions.download_data import get_raw_images, get_roi
+from functions.labelling import get_labeler
+from osgeo import gdal
+
+gdal.UseExceptions()
 
 
 def main(
-    source: str, dep: str, year: str, n_bands: int, type_labeler: str, task: str, tiles_size: int
+    source: str,
+    dep: str,
+    year: str,
+    n_bands: int,
+    type_labeler: str,
+    task: str,
+    tiles_size: int,
+    from_s3: bool,
 ):
     """
     Main method.
     """
-    # Initialize S3 file system
-    fs = download_data.get_file_system()
 
     print("\n*** 1- Téléchargement de la base d'annotation...\n")
-    labeler = labelling.get_labeler(type_labeler, year, dep, task)
+    labeler = get_labeler(type_labeler, year, dep, task)
 
+    print("\n*** 2- Récupération des données...\n")
+    images = get_raw_images(from_s3, source, dep, year)
+    prepro_test_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/test/"
+    prepro_train_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/train/"
+
+    # Creating empty directories for train and test data
     os.makedirs(
-        f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/",  # noqa
+        prepro_test_path,
+        exist_ok=True,
+    )
+    os.makedirs(
+        prepro_train_path,
         exist_ok=True,
     )
 
-    print("\n*** 2- Annotation, découpage et filtrage des images...\n")
-    for im in tqdm(fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")):
+    print("\n*** 3- Annotation, découpage et filtrage des images...\n")
+
+    # Instanciate a dict of metrics for normalization
+    metrics = {
+        "mean": [],
+        "std": [],
+    }
+
+    for im in tqdm(images):
         # 1- Ouvrir avec SatelliteImage
-        si = SatelliteImage.from_raster(
-            file_path=f"/vsis3/{im}",
-            n_bands=int(n_bands),
-        )
+        if int(from_s3):
+            si = SatelliteImage.from_raster(
+                file_path=f"/vsis3/{im}",
+                n_bands=int(n_bands),
+            )
+
+        else:
+            si = SatelliteImage.from_raster(
+                file_path=im,
+                n_bands=int(n_bands),
+            )
 
         # 2- Labeliser avec labeler (labeler/tache)
         label = labeler.create_label(si)
@@ -41,7 +75,11 @@ def main(
         # 3- Split les tuiles (param tiles_size)
         splitted_lsi = lsi.split(int(tiles_size))
 
-        # 4- Filtre too black and clouds
+        # 4- Import ROI borders
+        roi = get_roi(dep)
+
+        # 5- Filtre too black, clouds and ROI
+
         filter_ = Filter()
 
         if source == "PLEIADES":
@@ -64,20 +102,46 @@ def main(
                 )
                 or cloud
             )
+            and (
+                lsi.satellite_image.intersects_polygon(
+                    roi.loc[0, "geometry"], crs=lsi.satellite_image.crs
+                )
+            )
         ]
 
-        # 5- save dans data-prepro
+        test = False
+        # 6- save dans data-prepro
         for i, lsi in enumerate(splitted_lsi_filtered):
             filename, ext = os.path.splitext(os.path.basename(im))
-            lsi.satellite_image.to_raster(
-                f"data/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}{ext}"  # noqa
-            )
-            np.save(
-                f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}.npy",  # noqa
-                lsi.label,
-            )
+            if test:
+                lsi.satellite_image.to_raster(
+                    f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                )
+                np.save(
+                    f"{prepro_test_path}{filename}_{i:04d}.npy",
+                    lsi.label,
+                )
+            else:
+                lsi.satellite_image.to_raster(
+                    f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                )
+                np.save(
+                    f"{prepro_train_path}{filename}_{i:04d}.npy",
+                    lsi.label,
+                )
+                # get mean and std of an image
+                metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
+                metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
 
-    print("\n*** 3- Preprocessing terminé !\n")
+    metrics["mean"] = np.vstack(metrics["mean"]).mean(axis=0).tolist()
+    metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
+
+    with open(
+        f"{prepro_train_path.replace('labels', 'patchs')}metrics-normalization.yaml", "w"
+    ) as f:
+        yaml.dump(metrics, f, default_flow_style=False)
+
+    print("\n*** 4- Preprocessing terminé !\n")
 
 
 if __name__ == "__main__":
@@ -89,4 +153,5 @@ if __name__ == "__main__":
         str(sys.argv[5]),
         str(sys.argv[6]),
         str(sys.argv[7]),
+        str(sys.argv[8]),
     )

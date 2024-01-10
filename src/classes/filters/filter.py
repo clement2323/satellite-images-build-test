@@ -8,6 +8,7 @@ from shapely.geometry import Polygon
 
 from typing import List
 
+
 class Filter:
     """
     Filter class.
@@ -17,7 +18,10 @@ class Filter:
         return
 
     def is_too_black(
-        self, image: SatelliteImage, black_value_threshold: int = 100, black_area_threshold: float = 0.5
+        self,
+        image: SatelliteImage,
+        black_value_threshold: int = 100,
+        black_area_threshold: float = 0.5,
     ) -> bool:
         """
         Determine if an image has a significant proportion of black pixels.
@@ -43,7 +47,6 @@ class Filter:
 
         # Check if the proportion exceeds the threshold
         return black_pixel_ratio >= black_area_threshold
-
 
     def mask_cloud(
         self, image: SatelliteImage, threshold: float = 0.7, min_relative_size: float = 0.0125
@@ -131,7 +134,7 @@ class Filter:
 
         Returns:
         - np.ndarray: A binary mask indicating the cloud regions in the image.
-        
+
         Example:
             >>> filename_1 = '../data/PLEIADES/2020/MAYOTTE/
             ORT_2020052526656219_0508_8599_U38S_8Bits.jp2'
@@ -242,4 +245,6 @@ class Filter:
         masks = [mask[rows[0] : rows[1], cols[0] : cols[1]] for rows, cols in indices]
 
         # Return a list of binary values indicating cloud presence in each tile
-        return [1 if np.sum(tile_mask) > np.prod(tile_mask.shape) * 0.5 else 0 for tile_mask in masks]
+        return [
+            1 if np.sum(tile_mask) > np.prod(tile_mask.shape) * 0.5 else 0 for tile_mask in masks
+        ]

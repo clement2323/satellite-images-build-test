@@ -4,5 +4,5 @@
 
 ```shell
 cd satellite-images-preprocess
-source ./setup
+source ./setup.sh
 ```
