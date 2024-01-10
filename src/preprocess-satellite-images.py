@@ -8,12 +8,22 @@ from tqdm import tqdm
 from classes.filters.filter import Filter
 from functions.download_data import get_raw_images, get_roi
 from functions.labelling import get_labeler
+from functions.upload_data import upload_normalization_metrics
 from osgeo import gdal
 
 gdal.UseExceptions()
 
 
-def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task: str, tiles_size: int, from_s3:bool,):
+def main(
+    source: str,
+    dep: str,
+    year: str,
+    n_bands: int,
+    type_labeler: str,
+    task: str,
+    tiles_size: int,
+    from_s3: bool,
+):
     """
     Main method.
     """
@@ -27,8 +37,14 @@ def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task
     prepro_train_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/train/"
 
     # Creating empty directories for train and test data
-    os.makedirs(prepro_test_path,exist_ok=True,)
-    os.makedirs(prepro_train_path,exist_ok=True,)
+    os.makedirs(
+        prepro_test_path,
+        exist_ok=True,
+    )
+    os.makedirs(
+        prepro_train_path,
+        exist_ok=True,
+    )
 
     print("\n*** 2- Annotation, découpage et filtrage des images...\n")
 
@@ -42,14 +58,14 @@ def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task
         # 1- Ouvrir avec SatelliteImage
         if from_s3:
             si = SatelliteImage.from_raster(
-            file_path=f"/vsis3/{im}",
-            n_bands=int(n_bands),
+                file_path=f"/vsis3/{im}",
+                n_bands=int(n_bands),
             )
 
         else:
             si = SatelliteImage.from_raster(
-            file_path=im,
-            n_bands=int(n_bands),
+                file_path=im,
+                n_bands=int(n_bands),
             )
 
         # 2- Labeliser avec labeler (labeler/tache)
@@ -85,12 +101,12 @@ def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task
                     lsi.satellite_image, black_value_threshold=25, black_area_threshold=0.5
                 )
                 or cloud
+            )
+            and (
+                lsi.satellite_image.intersects_polygon(
+                    roi.loc[0, "geometry"], crs=lsi.satellite_image.crs
                 )
-                and (
-                    lsi.satellite_image.intersects_polygon(roi.loc[0,"geometry"],
-                    crs=lsi.satellite_image.crs
-                )
-                )
+            )
         ]
 
         test = False
@@ -99,14 +115,20 @@ def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task
             filename, ext = os.path.splitext(os.path.basename(im))
         if test:
             lsi.satellite_image.to_raster(
-            f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
             )
-            np.save(f"{prepro_test_path}{filename}_{i:04d}.npy", lsi.label,)
+            np.save(
+                f"{prepro_test_path}{filename}_{i:04d}.npy",
+                lsi.label,
+            )
         else:
             lsi.satellite_image.to_raster(
-            f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
             )
-            np.save(f"{prepro_train_path}{filename}_{i:04d}.npy", lsi.label,)
+            np.save(
+                f"{prepro_train_path}{filename}_{i:04d}.npy",
+                lsi.label,
+            )
             # get mean and std of an image
             metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
             metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
@@ -115,7 +137,6 @@ def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task
     metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
 
     upload_normalization_metrics(metrics, task, source, dep, year, tiles_size)
-
 
     print("\n*** 3- Preprocessing terminé !\n")
 

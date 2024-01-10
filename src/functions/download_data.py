@@ -53,33 +53,39 @@ def load_bdtopo(
     return df
 
 
-def get_raw_images(from_s3: bool, source: str, dep: str, year: str,):
+def get_raw_images(
+    from_s3: bool,
+    source: str,
+    dep: str,
+    year: str,
+):
     if from_s3:
         fs = get_file_system()
 
-        images = fs.ls(
-            (
-            f"projet-slums-detection/data-raw/"
-            f"{source}/{dep}/{year}"
-            )
-        )
+        images = fs.ls((f"projet-slums-detection/data-raw/" f"{source}/{dep}/{year}"))
     else:
         images_path = f"data/data-raw/{source}/{dep}/{year}"
         download_data(images_path, source, dep, year)
         images = [f"{images_path}/{filename}" for filename in os.listdir(images_path)]
-        
+
     return images
 
 
-def get_roi(dep: str,):
-
+def get_roi(
+    dep: str,
+):
     fs = get_file_system()
-    roi = gpd.read_file(fs.open(f"projet-slums-detection/data-roi/{dep}.geojson","rb"))
+    roi = gpd.read_file(fs.open(f"projet-slums-detection/data-roi/{dep}.geojson", "rb"))
 
     return roi
 
 
-def download_data(images_path: str,source: str,dep: str,year: str,):
+def download_data(
+    images_path: str,
+    source: str,
+    dep: str,
+    year: str,
+):
     """
     Download data from a specified source, department, and year.
     Parameters:
@@ -96,7 +102,7 @@ def download_data(images_path: str,source: str,dep: str,year: str,):
         "mc",
         "cp",
         "-r",
-        f"s3/projet-slums-detection/data-raw/{source}/{dep}/{year}",# noqa
+        f"s3/projet-slums-detection/data-raw/{source}/{dep}/{year}",  # noqa
         f"data/data-raw/{source}/{dep}/{year}/",
     ]
 

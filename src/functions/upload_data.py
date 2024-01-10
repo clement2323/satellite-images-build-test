@@ -2,7 +2,13 @@ import yaml
 from functions.download_data import get_file_system
 
 
-def upload_normalization_metrics(metrics: dict, source: str, dep: str, year: str, task: str, tiles_size: int,
+def upload_normalization_metrics(
+    metrics: dict,
+    source: str,
+    dep: str,
+    year: str,
+    task: str,
+    tiles_size: int,
 ) -> None:
     """
     Upload a Yaml file to s3 containing mean and standard deviation per channel
