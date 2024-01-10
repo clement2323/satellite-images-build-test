@@ -8,31 +8,31 @@ spec:
     parameters:
       - name: preprocessing-conf-list
         value: '[
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MAYOTTE", "year": "2017", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
 
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2020", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2019", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "GUADELOUPE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
 
-            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
-            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "MARTINIQUE", "year": "2018", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"},
 
-            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250"},
-            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125"}
+            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "250", "from_s3": "0"},
+            { "src": "PLEIADES", "dep": "REUNION", "year": "2022", "nb_bands": "3", "labeler": "BDTOPO", "task": "segmentation", "tile_size": "125", "from_s3": "0"}
             ]'
   templates:
     # Entrypoint DAG template
@@ -62,6 +62,8 @@ spec:
                   value: "{{item.task}}"
                 - name: tile_size
                   value: "{{item.tile_size}}"
+                - name: from_s3
+                  value: "{{item.from_s3}}"
             # Pass the inputs to the task using "withParam"
             withParam: "{{workflow.parameters.preprocessing-conf-list}}"
 
@@ -85,6 +87,7 @@ spec:
           - name: labeler
           - name: task
           - name: tile_size
+          - name: from_s3
       container:
         image: inseefrlab/satellite-images-preprocess:v0.0.2
         imagePullPolicy: Always
