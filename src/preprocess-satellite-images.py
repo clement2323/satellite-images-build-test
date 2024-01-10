@@ -113,25 +113,25 @@ def main(
         # 6- save dans data-prepro
         for i, lsi in enumerate(splitted_lsi_filtered):
             filename, ext = os.path.splitext(os.path.basename(im))
-        if test:
-            lsi.satellite_image.to_raster(
-                f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
-            )
-            np.save(
-                f"{prepro_test_path}{filename}_{i:04d}.npy",
-                lsi.label,
-            )
-        else:
-            lsi.satellite_image.to_raster(
-                f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
-            )
-            np.save(
-                f"{prepro_train_path}{filename}_{i:04d}.npy",
-                lsi.label,
-            )
-            # get mean and std of an image
-            metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
-            metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
+            if test:
+                lsi.satellite_image.to_raster(
+                    f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                )
+                np.save(
+                    f"{prepro_test_path}{filename}_{i:04d}.npy",
+                    lsi.label,
+                )
+            else:
+                lsi.satellite_image.to_raster(
+                    f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
+                )
+                np.save(
+                    f"{prepro_train_path}{filename}_{i:04d}.npy",
+                    lsi.label,
+                )
+                # get mean and std of an image
+                metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
+                metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
 
     metrics["mean"] = np.vstack(metrics["mean"]).mean(axis=0).tolist()
     metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
