@@ -64,7 +64,7 @@ def get_raw_images(
 
         images = fs.ls((f"projet-slums-detection/data-raw/" f"{source}/{dep}/{year}"))
     else:
-        images_path = f"data/data-raw/{source}/{dep}/{year}"
+        images_path = f"data/data-raw/{source}/{dep}"
         download_data(images_path, source, dep, year)
         images = [f"{images_path}/{filename}" for filename in os.listdir(images_path)]
 
