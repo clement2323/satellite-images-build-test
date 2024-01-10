@@ -59,7 +59,7 @@ def get_raw_images(
     dep: str,
     year: str,
 ):
-    if from_s3:
+    if int(from_s3):
         fs = get_file_system()
 
         images = fs.ls((f"projet-slums-detection/data-raw/" f"{source}/{dep}/{year}"))

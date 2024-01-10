@@ -1,5 +1,6 @@
 import os
 import sys
+import yaml
 
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
@@ -8,7 +9,6 @@ from tqdm import tqdm
 from classes.filters.filter import Filter
 from functions.download_data import get_raw_images, get_roi
 from functions.labelling import get_labeler
-from functions.upload_data import upload_normalization_metrics
 from osgeo import gdal
 
 gdal.UseExceptions()
@@ -31,7 +31,7 @@ def main(
     print("\n*** 1- Téléchargement de la base d'annotation...\n")
     labeler = get_labeler(type_labeler, year, dep, task)
 
-    print("\n*** 2- Téléchargement des données...\n")
+    print("\n*** 2- Récupération des données...\n")
     images = get_raw_images(from_s3, source, dep, year)
     prepro_test_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/test/"
     prepro_train_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/train/"
@@ -46,7 +46,7 @@ def main(
         exist_ok=True,
     )
 
-    print("\n*** 2- Annotation, découpage et filtrage des images...\n")
+    print("\n*** 3- Annotation, découpage et filtrage des images...\n")
 
     # Instanciate a dict of metrics for normalization
     metrics = {
@@ -56,7 +56,7 @@ def main(
 
     for im in tqdm(images):
         # 1- Ouvrir avec SatelliteImage
-        if from_s3:
+        if int(from_s3):
             si = SatelliteImage.from_raster(
                 file_path=f"/vsis3/{im}",
                 n_bands=int(n_bands),
@@ -136,9 +136,12 @@ def main(
     metrics["mean"] = np.vstack(metrics["mean"]).mean(axis=0).tolist()
     metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
 
-    upload_normalization_metrics(metrics, task, source, dep, year, tiles_size)
+    with open(
+        f"{prepro_train_path.replace('labels', 'patchs')}metrics-normalization.yaml", "w"
+    ) as f:
+        yaml.dump(metrics, f, default_flow_style=False)
 
-    print("\n*** 3- Preprocessing terminé !\n")
+    print("\n*** 4- Preprocessing terminé !\n")
 
 
 if __name__ == "__main__":
@@ -150,4 +153,5 @@ if __name__ == "__main__":
         str(sys.argv[5]),
         str(sys.argv[6]),
         str(sys.argv[7]),
+        str(sys.argv[8]),
     )
