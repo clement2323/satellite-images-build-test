@@ -1,31 +1,34 @@
 import os
 import sys
-import yaml
 
 import numpy as np
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from tqdm import tqdm
 
 from classes.filters.filter import Filter
-from functions import download_data, labelling
+from functions.download_data import get_raw_images, get_roi
+from functions.labelling import get_labeler
+from osgeo import gdal
+
+gdal.UseExceptions()
 
 
-def main(
-    source: str, dep: str, year: str, n_bands: int, type_labeler: str, task: str, tiles_size: int
-):
+def main(source: str, dep: str, year: str, n_bands: int, type_labeler: str, task: str, tiles_size: int, from_s3:bool,):
     """
     Main method.
     """
-    # Initialize S3 file system
-    fs = download_data.get_file_system()
 
     print("\n*** 1- Téléchargement de la base d'annotation...\n")
-    labeler = labelling.get_labeler(type_labeler, year, dep, task)
+    labeler = get_labeler(type_labeler, year, dep, task)
 
-    os.makedirs(
-        f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/",  # noqa
-        exist_ok=True,
-    )
+    print("\n*** 2- Téléchargement des données...\n")
+    images = get_raw_images(from_s3, source, dep, year)
+    prepro_test_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/test/"
+    prepro_train_path = f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/train/"
+
+    # Creating empty directories for train and test data
+    os.makedirs(prepro_test_path,exist_ok=True,)
+    os.makedirs(prepro_train_path,exist_ok=True,)
 
     print("\n*** 2- Annotation, découpage et filtrage des images...\n")
 
@@ -35,12 +38,19 @@ def main(
         "std": [],
     }
 
-    for im in tqdm(fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")[300:310]):
+    for im in tqdm(images):
         # 1- Ouvrir avec SatelliteImage
-        si = SatelliteImage.from_raster(
+        if from_s3:
+            si = SatelliteImage.from_raster(
             file_path=f"/vsis3/{im}",
             n_bands=int(n_bands),
-        )
+            )
+
+        else:
+            si = SatelliteImage.from_raster(
+            file_path=im,
+            n_bands=int(n_bands),
+            )
 
         # 2- Labeliser avec labeler (labeler/tache)
         label = labeler.create_label(si)
@@ -49,7 +59,11 @@ def main(
         # 3- Split les tuiles (param tiles_size)
         splitted_lsi = lsi.split(int(tiles_size))
 
-        # 4- Filtre too black and clouds
+        # 4- Import ROI borders
+        roi = get_roi(dep)
+
+        # 5- Filtre too black, clouds and ROI
+
         filter_ = Filter()
 
         if source == "PLEIADES":
@@ -71,33 +85,37 @@ def main(
                     lsi.satellite_image, black_value_threshold=25, black_area_threshold=0.5
                 )
                 or cloud
-            )
+                )
+                and (
+                    lsi.satellite_image.intersects_polygon(roi.loc[0,"geometry"],
+                    crs=lsi.satellite_image.crs
+                )
+                )
         ]
 
-        # 5- save dans data-prepro
+        test = False
+        # 6- save dans data-prepro
         for i, lsi in enumerate(splitted_lsi_filtered):
             filename, ext = os.path.splitext(os.path.basename(im))
+        if test:
             lsi.satellite_image.to_raster(
-                f"data/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}{ext}"  # noqa
+            f"{prepro_test_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
             )
-            np.save(
-                f"data/data-preprocessed/labels/{type_labeler}/{task}/{source}/{dep}/{year}/{tiles_size}/{filename}_{i:04d}.npy",  # noqa
-                lsi.label,
+            np.save(f"{prepro_test_path}{filename}_{i:04d}.npy", lsi.label,)
+        else:
+            lsi.satellite_image.to_raster(
+            f"{prepro_train_path.replace('labels', 'patchs')}{filename}_{i:04d}{ext}"
             )
+            np.save(f"{prepro_train_path}{filename}_{i:04d}.npy", lsi.label,)
             # get mean and std of an image
             metrics["mean"].append(np.mean(lsi.satellite_image.array, axis=(1, 2)))
             metrics["std"].append(np.std(lsi.satellite_image.array, axis=(1, 2)))
 
     metrics["mean"] = np.vstack(metrics["mean"]).mean(axis=0).tolist()
     metrics["std"] = np.vstack(metrics["std"]).mean(axis=0).tolist()
-    yaml_data = yaml.dump(metrics, default_flow_style=False)
 
-    # Save metrics file in s3
-    with fs.open(
-        f"projet-slums-detection/data-preprocessed/patchs/{task}/{source}/{dep}/{year}/{tiles_size}/metrics-normalization.yaml",
-        "wb",
-    ) as f:
-        f.write(yaml_data.encode("utf-8"))
+    upload_normalization_metrics(metrics, task, source, dep, year, tiles_size)
+
 
     print("\n*** 3- Preprocessing terminé !\n")
 
