@@ -1,7 +1,9 @@
 import re
+import s3fs
 
 from pyproj import Transformer
 from utils.mappings import dep_to_crs, name_dep_to_num_dep
+from astrovision.data import SatelliteImage
 
 
 def crs_to_gps_image(
@@ -60,7 +62,7 @@ def gps_to_crs_point(
             Latitude
         lon (float):
             Longitude
-        crs (int):
+        crs (str):
             The coordinate system of the point.
 
     Returns:
@@ -73,7 +75,7 @@ def gps_to_crs_point(
     # Convert GPS coordinates to coordinates in destination coordinate system
     # (CRS)
     transformer = Transformer.from_crs(
-        "EPSG:4326", f"EPSG:{str(crs)}", always_xy=True
+        "EPSG:4326", f"EPSG:{crs}", always_xy=True
     )  # in case the input CRS is of integer type
     x, y = transformer.transform(lon, lat)
     # because y=lat and x=lon, the gps coordinates are in (lat,lon)
@@ -86,7 +88,7 @@ def find_image_of_point(
     coordinates: list,
     dep: str,
     year: str,
-    fs,
+    fs: s3fs,
     coord_gps: bool = True,
 ) -> str:
     """
@@ -102,9 +104,11 @@ def find_image_of_point(
             the point.
         year(str):
             The year when the image was photographed.
-        fs
+        fs (s3fs)
         coord_gps (boolean):
-            Specifies if the coordinate is a gps coordinate or not.
+            True if the coordinate is a gps coordinate,
+            False if the coordinate is a crs coordinate.
+            By default True.
 
     Returns:
         str:
@@ -119,7 +123,7 @@ def find_image_of_point(
         >>> find_image_of_point([14.635338, -61.038345], "MARTINIQUE", "2022", fs)
         'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/ORT_2022_0711_1619_U20N_8Bits.jp2'
     """
-    folder_path = f"projet-slums-detection/data-raw/'PLEIADES/{dep}/{year}/"
+    folder_path = f"projet-slums-detection/data-raw/PLEIADES/{dep}/{year}/"
 
     if coord_gps:
         # Retrieve the crs via the department
@@ -228,3 +232,53 @@ l'année {different_year}"
             return new_filename
         else:
             return "There is no image of this place in the requested year in the database Pléiades."
+
+
+def point_is_in_image(
+    image: SatelliteImage,
+    coordinates: list,
+    coord_gps: bool = True,
+) -> bool:
+    """
+    Return True if the SatelliteImage contains the point (gps or crs).
+
+    Args:
+        image (SatelliteImage)
+        coordinates (list):
+            [x,y] CRS coordinate or [lat, lon] gps coordinate
+        coord_gps (boolean):
+            True if the coordinate is a gps coordinate,
+            False if the coordinate is a crs coordinate.
+            By default True.
+
+    Returns:
+        bool
+
+    Examples:
+    >>> filepath = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
+    ORT_2022_0711_1619_U20N_8Bits.jp2'
+    >>> image = SatelliteImage.from_raster(
+                file_path=f"/vsis3/{filepath}",
+                n_bands=3,
+            )
+    >>> point_is_in_image(image,[14.635338, -61.038345])
+    True
+    """
+    if coord_gps:
+        # Retrieve the crs via the department
+        crs = image.crs[5:]
+
+        lat, lon = coordinates
+        x, y = gps_to_crs_point(lat, lon, crs)
+
+    else:
+        x, y = coordinates
+
+    # Retrieve left-top coordinates
+    left, bottom, right, top = image.bounds
+
+    if left <= x <= right:
+        if bottom <= y <= top:
+            return True
+    else:
+        return False
