@@ -2,7 +2,7 @@ import re
 import s3fs
 
 from pyproj import Transformer
-from utils.mappings import dep_to_crs, name_dep_to_num_dep
+from utils.mappings import name_dep_to_crs
 from astrovision.data import SatelliteImage
 
 
@@ -39,8 +39,7 @@ def crs_to_gps_image(
     x = float(split_filename[2]) * 1000.0  # left
     y = float(split_filename[3]) * 1000.0  # top
 
-    dep_num = name_dep_to_num_dep[split_filepath[3]]
-    str_crs = dep_to_crs[dep_num]
+    str_crs = name_dep_to_crs[split_filepath[3]]
 
     transformer = Transformer.from_crs(f"EPSG:{str_crs}", "EPSG:4326", always_xy=True)
     lon, lat = transformer.transform(x, y)
@@ -52,7 +51,7 @@ def crs_to_gps_image(
 def gps_to_crs_point(
     lat: float,
     lon: float,
-    crs: int,
+    crs: str,
 ) -> (float, float):
     """
     Gives the CRS point of a GPS point.
@@ -130,8 +129,7 @@ def find_image_of_point(
 
     if coord_gps:
         # Retrieve the crs via the department
-        dep_num = name_dep_to_num_dep[dep]
-        crs = dep_to_crs[dep_num]
+        crs = name_dep_to_crs[dep]
 
         lat, lon = coordinates
         x, y = gps_to_crs_point(lat, lon, crs)

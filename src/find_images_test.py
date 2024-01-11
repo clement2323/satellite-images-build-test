@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 
 from functions import download_data, labelling
 from functions.plot_utils import plot_square_nb_images_mask
-from functions.image_utils import find_image_of_point, point_is_in_image
+from functions.image_utils import find_image_of_point, point_is_in_image, gps_to_crs_point
 
 # from functions.image_utils import *
 from astrovision.data import SatelliteImage
 
 source = "PLEIADES"
 dep = "MAYOTTE"
-year = "2020"
+year = "2017"
 task = "segmentation"
 type_labeler = "BDTOPO"
 tiles_size = "250"
@@ -19,7 +19,9 @@ tiles_size = "250"
 fs = download_data.get_file_system()
 
 point = [-12.47202, 45.13075]
-# find_image_of_point(point, dep, year, fs)
+gps_to_crs_point(point[0], point[1], "4471")
+find_image_of_point(point, dep, year, fs)
+
 filepath = find_image_of_point([14.635338, -61.038345], "MARTINIQUE", "2022", fs)
 image = SatelliteImage.from_raster(
     file_path=f"/vsis3/{filepath}",
