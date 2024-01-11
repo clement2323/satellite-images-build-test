@@ -115,10 +115,13 @@ def find_image_of_point(
             The path of the image containing the point.
 
     Examples:
-        >>> folder = "projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/"
+        >>> from functions import download_data
+        >>> fs = download_data.get_file_system()
         >>> find_image_of_point([713000.0, 1606000.0], "MARTINIQUE", "2022", fs, False)
         'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/ORT_2022_0712_1606_U20N_8Bits.jp2'
 
+        >>> from functions import download_data
+        >>> fs = download_data.get_file_system()
         >>> folder = "projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/"
         >>> find_image_of_point([14.635338, -61.038345], "MARTINIQUE", "2022", fs)
         'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/ORT_2022_0711_1619_U20N_8Bits.jp2'
@@ -127,11 +130,7 @@ def find_image_of_point(
 
     if coord_gps:
         # Retrieve the crs via the department
-
-        split_folder = folder_path.split("/")
-
-        departement = split_folder[3]
-        dep_num = name_dep_to_num_dep[departement]
+        dep_num = name_dep_to_num_dep[dep]
         crs = dep_to_crs[dep_num]
 
         lat, lon = coordinates
@@ -167,7 +166,7 @@ def find_image_different_years(
 ) -> str:
     """
     Finds the image which represents the same place but in a different year.
-    The arguments can be either a SatteliteImage or the filepath of an image.
+    The arguments can be either a SatelliteImage or the filepath of an image.
     This method is based on the filenames of the pleiades images.
 
     Args:
@@ -183,13 +182,15 @@ def find_image_different_years(
             different period of time.
 
     Example:
+        >>> from functions import download_data
+        >>> fs = download_data.get_file_system()
         >>> filename_1 = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
         ORT_2022_0711_1619_U20N_8Bits.jp2'
         >>> find_image_different_years(filename_1, 2018, fs)
         'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2018/972-2017-0711-1619-U20N-0M50-RVB-E100.jp2'
     """
     # Retrieve base department
-    split_folder = filepath.split("/")
+    split_folder = filepath.split("/")[:-1]
 
     dep = split_folder[3]
     year = different_year
@@ -255,6 +256,7 @@ def point_is_in_image(
         bool
 
     Examples:
+    >>> from astrovision.data import SatelliteImage
     >>> filepath = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
     ORT_2022_0711_1619_U20N_8Bits.jp2'
     >>> image = SatelliteImage.from_raster(
