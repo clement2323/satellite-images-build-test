@@ -35,9 +35,18 @@ def crs_to_gps_image(
 
     split_filepath = filepath.split("/")
     split_filename = re.split(pattern, split_filepath[-1])
+    dep = split_filepath[3]
+    year = split_filepath[4]
 
-    x = float(split_filename[2]) * 1000.0  # left
-    y = float(split_filename[3]) * 1000.0  # top
+    if year == "2022" and dep in ["GUADELOUPE", "MAYOTTE"]:
+        top_bound_index = 4
+        left_bound_index = 3
+    else:
+        top_bound_index = 3
+        left_bound_index = 2
+
+    x = float(split_filename[left_bound_index]) * 1000.0  # left
+    y = float(split_filename[top_bound_index]) * 1000.0  # top
 
     str_crs = name_dep_to_crs[split_filepath[3]]
 
@@ -142,11 +151,18 @@ def find_image_of_point(
 
     pattern = "|".join(delimiters)
 
+    if year == "2022" and dep in ["GUADELOUPE", "MAYOTTE"]:
+        top_bound_index = 4
+        left_bound_index = 3
+    else:
+        top_bound_index = 3
+        left_bound_index = 2
+
     for filename in fs.ls(folder_path):
         split_filename = filename.split("/")[-1]
         split_filename = re.split(pattern, split_filename)
-        left = float(split_filename[2]) * 1000
-        top = float(split_filename[3]) * 1000
+        left = float(split_filename[left_bound_index]) * 1000
+        top = float(split_filename[top_bound_index]) * 1000
         right = left + 1000.0
         bottom = top - 1000.0
 
@@ -221,8 +237,15 @@ l'année {different_year}"
         split_filename = filename.split("/")[-1]
         split_filename = split_filename.split(pattern)
 
-        split_filename[2] = split_filepath[2]
-        split_filename[3] = split_filepath[3]
+        if year == "2022" and dep in ["GUADELOUPE", "MAYOTTE"]:
+            top_bound_index = 4
+            left_bound_index = 3
+        else:
+            top_bound_index = 3
+            left_bound_index = 2
+
+        split_filename[left_bound_index] = split_filepath[left_bound_index]
+        split_filename[top_bound_index] = split_filepath[top_bound_index]
 
         new_filename = pattern.join(split_filename)
         new_filename = f"{folder_path}{new_filename}"

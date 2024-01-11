@@ -7,7 +7,7 @@ from functions.plot_utils import plot_images_mask_around_point
 
 source = "PLEIADES"
 dep = "MAYOTTE"
-year = "2017"
+year = "2022"
 task = "segmentation"
 type_labeler = "BDTOPO"
 tiles_size = "250"
@@ -27,4 +27,4 @@ os.makedirs(
 
 plt.close()
 images = plot_images_mask_around_point(point, source, dep, year, labeler, n_bands, fs, 2)
-images.savefig("data/images_point_mayotte.png")
+images.savefig("data/images_point_mayotte2.png")

@@ -162,10 +162,19 @@ def plot_images_mask_around_point(
     pattern = "|".join(delimiters)
     list_bounding_box = []
 
+    if year == "2022" and dep in ["GUADELOUPE", "MAYOTTE"]:
+        top_bound_index = 4
+        left_bound_index = 3
+    else:
+        top_bound_index = 3
+        left_bound_index = 2
+
     for filename in list_images:
         split_filename = filename.split("/")[-1]
         split_filename = re.split(pattern, split_filename)
-        list_bounding_box.append([int(split_filename[3]), int(split_filename[2])])
+        list_bounding_box.append(
+            [int(split_filename[top_bound_index]), int(split_filename[left_bound_index])]
+        )
 
     # Utiliser zip pour combiner les trois listes
     combined = zip(list_bounding_box, list_images)
