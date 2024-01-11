@@ -68,8 +68,8 @@ def gps_to_crs_point(
         CRS coordinate (float, float):
 
     Example:
-        >>> gps_to_crs_point(14.636195717948983, -61.04095442371388, '5490')
-        (711000.0000002225, 1618999.9999483444)
+        >>> gps_to_crs_point(-12.774895, 45.218719, "4471")
+        (523739.43307804153, 8587747.558612097)
     """
     # Convert GPS coordinates to coordinates in destination coordinate system
     # (CRS)

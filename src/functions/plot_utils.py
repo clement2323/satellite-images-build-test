@@ -3,12 +3,22 @@ import math
 import matplotlib.pyplot as plt
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from tqdm import tqdm
+import re
+import s3fs
 
+from utils.mappings import name_dep_to_crs
 from classes.filters.filter import Filter
 from classes.labelers.labeler import Labeler
+from functions.image_utils import gps_to_crs_point
 
 
-def plot_list_path_square(list_filepaths: list, filter_, source, dep, year):
+def plot_list_path_square_cloud(
+    list_filepaths: list,
+    filter_: Filter,
+    dep: str,
+    year: str,
+):
+    list_filepaths = sorted(list_filepaths)
     size = int(math.sqrt(len(list_filepaths)))
     bands_indices = [0, 1, 2]
 
@@ -67,12 +77,15 @@ def plot_list_path_square(list_filepaths: list, filter_, source, dep, year):
     return plt.gcf()
 
 
-def plot_square_nb_images_folder(source, dep, year, filter_: Filter, debut, fin, n_bands, fs):
+def plot_square_nb_images_folder_cloud(
+    dep: str, year: str, filter_: Filter, debut: int, fin: int, n_bands: int, fs: s3fs
+):
     bands_indices = [i for i in range(int(n_bands))]
 
     list_labeled_image = []
 
-    list_images = fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")[debut:fin]
+    list_images = fs.ls(f"projet-slums-detection/data-raw/PLEIADES/{dep}/{year}/")
+    list_images = sorted(list_images)[debut:fin]
     size = int(math.sqrt(len(list_images)))
 
     for im_path in tqdm(list_images):
@@ -128,13 +141,51 @@ def plot_square_nb_images_folder(source, dep, year, filter_: Filter, debut, fin,
     return plt.gcf()
 
 
-def plot_square_nb_images_mask(source, dep, year, labeler: Labeler, debut, fin, n_bands, fs):
+def plot_images_mask_around_point(
+    point_gps: list,
+    source: str,
+    dep: str,
+    year: str,
+    labeler: Labeler,
+    n_bands: int,
+    fs: s3fs,
+    nb_dist: int = 1,
+):
     bands_indices = [i for i in range(int(n_bands))]
 
     list_labeled_image = []
 
-    list_images = fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")[debut:fin]
-    list_images = sorted(list_images)
+    list_images = fs.ls(f"projet-slums-detection/data-raw/{source}/{dep}/{year}/")
+
+    delimiters = ["-", "_"]
+
+    pattern = "|".join(delimiters)
+    list_bounding_box = []
+
+    for filename in list_images:
+        split_filename = filename.split("/")[-1]
+        split_filename = re.split(pattern, split_filename)
+        list_bounding_box.append([int(split_filename[3]), int(split_filename[2])])
+
+    # Utiliser zip pour combiner les trois listes
+    combined = zip(list_bounding_box, list_images)
+
+    # Trier les éléments combinés en fonction de la troisième liste
+    sorted_combined = sorted(combined, key=lambda x: (-x[0][0], x[0][1]))
+
+    # Diviser les listes triées en fonction de l'ordre des éléments
+    list_bounding_box, list_images = zip(*sorted_combined)
+
+    crs = name_dep_to_crs[dep]
+    point_crs = gps_to_crs_point(point_gps[0], point_gps[1], crs)
+    bounds = [int(point_crs[1] / 1000), int(point_crs[0] / 1000)]
+
+    index_bounds = list_bounding_box.index(bounds)
+
+    nb_images = (1 + 2 * nb_dist) ** 2
+    images_before = int(nb_images / 2)
+    images_after = images_before + 1
+    list_images = list_images[index_bounds - images_before : index_bounds + images_after]
     size = int(math.sqrt(len(list_images)))
 
     for im_path in tqdm(list_images):
@@ -151,19 +202,8 @@ def plot_square_nb_images_mask(source, dep, year, labeler: Labeler, debut, fin, 
 
         # plt.imshow(mask_cloud, cmap = 'gray')
 
-    list_images1 = [iml.satellite_image for iml in list_labeled_image]
-    list_labels1 = [iml.label for iml in list_labeled_image]
-
-    list_bounding_box = [[im.bounds[3], im.bounds[0]] for im in list_images1]
-
-    # Utiliser zip pour combiner les trois listes
-    combined = zip(list_bounding_box, list_images1, list_labels1)
-
-    # Trier les éléments combinés en fonction de la troisième liste
-    sorted_combined = sorted(combined, key=lambda x: (-x[0][0], x[0][1]))
-
-    # Diviser les listes triées en fonction de l'ordre des éléments
-    __, list_images, list_labels = zip(*sorted_combined)
+    list_images = [iml.satellite_image for iml in list_labeled_image]
+    list_labels = [iml.label for iml in list_labeled_image]
 
     size = int(math.sqrt(len(list_images)))
 
