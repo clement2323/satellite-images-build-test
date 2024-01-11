@@ -163,7 +163,7 @@ def find_image_of_point(
 def find_image_different_years(
     filepath: str,
     different_year: int,
-    fs,
+    fs: s3fs,
 ) -> str:
     """
     Finds the image which represents the same place but in a different year.
@@ -175,7 +175,7 @@ def find_image_different_years(
             The filepath of the image.
         different_year (int):
             The year we are interested in.
-        fs
+        fs (s3fs)
 
     Returns:
         str:
