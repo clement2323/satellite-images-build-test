@@ -1,6 +1,6 @@
 import re
 import s3fs
-
+from typing import List
 from pyproj import Transformer
 from utils.mappings import name_dep_to_crs
 from astrovision.data import SatelliteImage
@@ -302,6 +302,44 @@ def point_is_in_image(
 
     if left <= x <= right:
         if bottom <= y <= top:
+            return True
+    else:
+        return False
+
+
+def image_is_in_bb(
+    image: SatelliteImage,
+    bounding_box: List[float],
+) -> bool:
+    """
+    Return True if the SatelliteImage is in the bouding box.
+
+    Args:
+        image (SatelliteImage)
+        bounding_box (List[float]):
+            [left, bottom, right, top]
+
+    Returns:
+        bool
+
+    Examples:
+    >>> from astrovision.data import SatelliteImage
+    >>> filepath = 'projet-slums-detection/data-raw/PLEIADES/MARTINIQUE/2022/
+    ORT_2022_0711_1619_U20N_8Bits.jp2'
+    >>> image = SatelliteImage.from_raster(
+                file_path=f"/vsis3/{filepath}",
+                n_bands=3,
+            )
+    >>> image_is_in_bb(image,[710000.0, 1618000.0, 712000.0, 1620000.0])
+    True
+    """
+    left, bottom, right, top = bounding_box
+
+    # Retrieve left-top coordinates
+    left_image, bottom_image, right_image, top_image = image.bounds
+
+    if left <= left_image <= right and left <= right_image <= right:
+        if bottom <= bottom_image <= top and bottom <= top_image <= top:
             return True
     else:
         return False

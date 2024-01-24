@@ -4,8 +4,19 @@ import matplotlib.pyplot as plt
 from functions import download_data, labelling
 from functions.plot_utils import plot_images_mask_around_point
 
+# Mayotte
+# dep = "MAYOTTE"
+# point = [-12.838770, 45.131530]
+# point = [-12.774895, 45.218719]
+# point = [-12.719838, 45.117112]
+point = [-12.961326, 45.126497]
+
+# Martinique
+dep = "MARTINIQUE"
+# point = [14.650193, -61.055606]
+point = [14.574659, -60.975153]
+
 source = "PLEIADES"
-dep = "MAYOTTE"
 year = "2022"
 task = "segmentation"
 type_labeler = "BDTOPO"
@@ -22,11 +33,11 @@ os.makedirs(
     exist_ok=True,
 )
 
-point = [-12.774895, 45.218719]
-# point = [-12.783226, 45.219909]
-# point = [-12.838770, 45.131530]
-# point = [-12.961326, 45.126497]
+os.makedirs(
+    f"data/images-test-{dep.lower()}/",  # noqa
+    exist_ok=True,
+)
 
 plt.close()
 images = plot_images_mask_around_point(point, source, dep, year, labeler, n_bands, fs, nb_dist=1)
-images.savefig("data/images_point_mayotte2.png")
+images.savefig(f"data/images-test-{dep.lower()}/images_{point}_{dep}_{year}.png")
