@@ -160,7 +160,7 @@ def plot_images_mask_around_point(
     delimiters = ["-", "_"]
 
     pattern = "|".join(delimiters)
-    list_bounding_box = []
+    images_bb = {}
 
     if year == "2022" and dep in ["GUADELOUPE", "MAYOTTE"]:
         top_bound_index = 4
@@ -172,29 +172,24 @@ def plot_images_mask_around_point(
     for filename in list_images:
         split_filename = filename.split("/")[-1]
         split_filename = re.split(pattern, split_filename)
-        list_bounding_box.append(
-            [int(split_filename[top_bound_index]), int(split_filename[left_bound_index])]
-        )
-
-    # Utiliser zip pour combiner les trois listes
-    combined = zip(list_bounding_box, list_images)
-
-    # Trier les éléments combinés en fonction de la troisième liste
-    sorted_combined = sorted(combined, key=lambda x: (-x[0][0], x[0][1]))
-
-    # Diviser les listes triées en fonction de l'ordre des éléments
-    list_bounding_box, list_images = zip(*sorted_combined)
+        images_bb[filename] = [
+            int(split_filename[top_bound_index]),
+            int(split_filename[left_bound_index]),
+        ]
 
     crs = name_dep_to_crs[dep]
     point_crs = gps_to_crs_point(point_gps[0], point_gps[1], crs)
     bounds = [int(point_crs[1] / 1000), int(point_crs[0] / 1000)]
 
-    index_bounds = list_bounding_box.index(bounds)
+    list_images = [
+        cle
+        for cle, valeur in images_bb.items()
+        if (
+            bounds[0] - nb_dist <= valeur[0] <= bounds[0] + nb_dist
+            and bounds[1] - nb_dist <= valeur[1] <= bounds[1] + nb_dist
+        )
+    ]
 
-    nb_images = (1 + 2 * nb_dist) ** 2
-    images_before = int(nb_images / 2)
-    images_after = images_before + 1
-    list_images = list_images[index_bounds - images_before : index_bounds + images_after]
     size = int(math.sqrt(len(list_images)))
 
     for im_path in tqdm(list_images):
@@ -211,8 +206,19 @@ def plot_images_mask_around_point(
 
         # plt.imshow(mask_cloud, cmap = 'gray')
 
-    list_images = [iml.satellite_image for iml in list_labeled_image]
-    list_labels = [iml.label for iml in list_labeled_image]
+    list_images1 = [iml.satellite_image for iml in list_labeled_image]
+    list_labels1 = [iml.label for iml in list_labeled_image]
+
+    list_bounding_box = [[im.bounds[3], im.bounds[0]] for im in list_images1]
+
+    # Utiliser zip pour combiner les trois listes
+    combined = zip(list_bounding_box, list_images1, list_labels1)
+
+    # Trier les éléments combinés en fonction de la troisième liste
+    sorted_combined = sorted(combined, key=lambda x: (-x[0][0], x[0][1]))
+
+    # Diviser les listes triées en fonction de l'ordre des éléments
+    __, list_images, list_labels = zip(*sorted_combined)
 
     size = int(math.sqrt(len(list_images)))
 
