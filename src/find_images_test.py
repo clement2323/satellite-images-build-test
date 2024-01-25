@@ -7,9 +7,9 @@ from functions.plot_utils import plot_images_mask_around_point
 
 # Mayotte
 # dep = "MAYOTTE"
-# point = [-12.774895, 45.218719]
-# point = [-12.719838, 45.117112]
-# point = [-12.961326, 45.126497]
+# point = [-12.774895, 45.218719] # 4 en haut à droite
+# point = [-12.719838, 45.117112] # 4 en haut à droite
+# point = [-12.961326, 45.126497] # 4 en haut à droite
 
 # # Martinique
 # dep = "MARTINIQUE"
@@ -17,20 +17,20 @@ from functions.plot_utils import plot_images_mask_around_point
 # point = [14.574659, -60.975153]
 
 # Guadeloupe
-dep = "GUADELOUPE"
-# point = [16.205556577017383, -61.482986085610385]
-# point = [16.329284496925418, -61.46031328436647]
+# dep = "GUADELOUPE"
+# point = [16.205556577017383, -61.482986085610385] # 4 en haut à gauche
+# point = [16.329284496925418, -61.46031328436647] # 6 sur la gauche
 # point = [16.009606762305808, -61.680187477540215]
 
 # Guyane
-dep = "GUYANE"
-point = [4.858333, -52.279172]
+# dep = "GUYANE"
+# point = [4.858333, -52.279172]
 
 # Reunion
 dep = "REUNION"
-# point = [-20.902806594883593, 55.50138840828117]
-# point = [-21.05190440896064, 55.223939457016336]
-# point = [-21.106326150694997, 55.294520868581344]
+# point = [-20.902806594883593, 55.50138840828117] # 4 en haut à gauche
+# point = [-21.05190440896064, 55.223939457016336] # 6 à droite
+point = [-21.106326150694997, 55.294520868581344]  # 2 en bas à droite
 
 
 source = "PLEIADES"
@@ -62,33 +62,53 @@ images, bb_images = plot_images_mask_around_point(
 images.savefig(f"data/images-test-{dep.lower()}/images_{point}_{dep}_{year}.png")
 
 
-def bounding_boxes_to_yaml(bounding_boxes, dep):
-    # Create a dictionary with the bounding boxes
-    data = {dep: bounding_boxes}
+def give_bb_of_zone(bb_images, indices_to_keep=[i for i in range(len(bb_images))]):
+    bb_images_keeped = [bb_images[i] for i in indices_to_keep]
 
-    # Convert the dictionary to a YAML formatted string
-    yaml_data = yaml.dump(data, default_flow_style=False)
+    left = min(liste[0] for liste in bb_images_keeped)
+    bottom = min(liste[1] for liste in bb_images_keeped)
+    right = max(liste[2] for liste in bb_images_keeped)
+    top = max(liste[3] for liste in bb_images_keeped)
 
-    return yaml_data
+    return [left, bottom, right, top]
 
 
-# Example usage
-bounding_boxes = [[10, 20, 30, 40], [50, 60, 70, 80]]
-yaml_output = bounding_boxes_to_yaml(bounding_boxes)
-print(yaml_output)
+bb_zone = give_bb_of_zone(bb_images, [7, 8])
 
-with open("bb_test.yaml", "w") as file:
-    file.write(yaml_output)
+all_bb_zones = []
+all_bb_zones.append(bb_zone)
+
 
 # ecrire à la suite du fichier et ne pas en créer un nouveau à chaque fois
+def bounding_boxes_to_yaml(bounding_boxes, dep, file_path="bb_test.yaml"):
+    if not os.path.isfile(file_path):
+        data = {dep: bounding_boxes}
+
+        yaml_data = yaml.dump(data, default_flow_style=False)
+
+        with open("bb_test.yaml", "w") as file:
+            file.write(yaml_data)
+
+    else:
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+
+        data[dep] = bounding_boxes
+
+        with open(file_path, "w") as file:
+            yaml.dump(data, file)
 
 
-def load_bounding_boxes_from_yaml(file_path, dep):
-    # Open the YAML file and read the data
+bounding_boxes_to_yaml(all_bb_zones, dep)
+
+
+def load_bounding_boxes_from_yaml(dep, file_path="bb_test.yaml"):
     with open(file_path, "r") as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
 
-    # Extract the bounding boxes list
     bounding_boxes = data.get(dep, [])
 
     return bounding_boxes
+
+
+load_bounding_boxes_from_yaml(dep)

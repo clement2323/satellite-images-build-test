@@ -170,7 +170,8 @@ def find_image_of_point(
             if bottom <= y <= top:
                 return filename
     else:
-        return "The point is not find in the folder."
+        print("The point is not find in the folder.")
+        return None
 
 
 def find_image_different_years(
