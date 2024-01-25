@@ -151,6 +151,7 @@ def plot_images_mask_around_point(
     fs: s3fs,
     nb_dist: int = 1,
 ):
+    # find_image_of_point(point, dep, year, fs)
     bands_indices = [i for i in range(int(n_bands))]
 
     list_labeled_image = []
@@ -225,12 +226,14 @@ def plot_images_mask_around_point(
     # Create a figure and axes
     fig, axs = plt.subplots(nrows=size, ncols=2 * size, figsize=(20, 10))
 
+    bb_images = []
     # Iterate over the grid of masks and plot them
     for i in range(size):
         for j in range(size):
             axs[i, j].imshow(
                 list_images[i * size + j].array.transpose(1, 2, 0)[:, :, bands_indices]
             )
+            bb_images.append(list_images[i * size + j].bounds)
 
     for i in range(size):
         for j in range(size):
@@ -242,4 +245,4 @@ def plot_images_mask_around_point(
             axs[i, j].set_axis_off()
 
     # Show the plot
-    return plt.gcf()
+    return plt.gcf(), bb_images
