@@ -2,6 +2,7 @@ import os
 from astrovision.data import SatelliteImage, SegmentationLabeledSatelliteImage
 from functions import download_data, labelling
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 dep = "MAYOTTE"
@@ -27,13 +28,13 @@ labeler = labelling.get_labeler(type_labeler, year, dep, task)
 
 for im in list(image_filepaths):
     # 1- Ouvrir avec SatelliteImage
-    im = image_filepaths[0]
     image = SatelliteImage.from_raster(
         file_path=f"/vsis3/{im}",
         n_bands=n_bands,
     )
-    image.normalize()
+    # image.normalize()
     mask = labeler.create_segmentation_label(image)
+    print(np.sum(mask))
     if np.sum(mask) > 0:
         lsi = SegmentationLabeledSatelliteImage(image, mask)
         image_mask = lsi.plot(bands_indices=[0, 1, 2])
@@ -43,3 +44,4 @@ for im in list(image_filepaths):
         image_mask.savefig(
             f"../data/affichage_data_raw/{type_labeler}/{task}/{source}/{dep}/{year}/{filename}.png"
         )
+        plt.close()
